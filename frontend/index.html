@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himawari-9 衛星即時觀測系統</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <h1>Himawari-9 🛰️</h1>
+                <p>Real-time Observation System</p>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>影像模式 (View Mode)</h3>
+                    <button class="btn active" data-mode="true_color">
+                        🌍 真彩色 (True Color)
+                        <span class="btn-subtext">綠光增強校正</span>
+                    </button>
+                    <button class="btn" data-mode="ir">
+                        🌡️ 紅外線 (Infrared)
+                        <span class="btn-subtext">夜間/亮溫映射 (Band 14)</span>
+                    </button>
+                </div>
+
+                <div class="info-group">
+                    <h3>狀態與資訊 (Status)</h3>
+                    <div class="status-item">
+                        <span class="status-label">資料時間:</span>
+                        <span class="status-value" id="timestamp-display">載入中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">更新頻率:</span>
+                        <span class="status-value">每 10 分鐘</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">狀態:</span>
+                        <span class="status-indicator"></span>
+                        <span class="status-value" id="system-status">連線中</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>Data provided by NOAA AWS Open Data</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="image-container" id="image-container">
+                <div class="loader" id="loader"></div>
+                <img id="satellite-img" src="" alt="Himawari-9 Satellite Image" class="hidden">
+            </div>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
