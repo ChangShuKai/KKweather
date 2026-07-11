@@ -55,16 +55,16 @@ app.add_middleware(
 static_dir = os.path.join(os.path.dirname(__file__), 'static')
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
 
-os.makedirs(static_dir, exist_ok=True)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
-app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
-
 @app.get("/api/latest")
 def get_latest():
     if os.path.exists(LATEST_DATA_FILE):
         with open(LATEST_DATA_FILE, 'r') as f:
             return json.load(f)
     return {"status": "processing"}
+
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
