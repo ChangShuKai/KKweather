@@ -52,6 +52,11 @@ async function fetchLatestData() {
         
         if (data.status === 'processing') {
             console.log('Backend is still processing initial data...');
+            const loadingText = document.getElementById('loading-text');
+            if (loadingText) loadingText.textContent = data.message || 'Initial satellite rendering in progress...';
+            const loaderContainer = document.getElementById('loader-container');
+            if (loaderContainer) loaderContainer.style.display = 'flex';
+            imgElement.classList.add('hidden');
             return;
         }
 
@@ -90,7 +95,8 @@ function updateDisplay() {
 
     // Show loader and hide image for transition
     imgElement.classList.add('hidden');
-    loader.style.display = 'block';
+    const loaderContainer = document.getElementById('loader-container');
+    if (loaderContainer) loaderContainer.style.display = 'flex';
 
     // Preload image
     const tempImg = new Image();
@@ -99,11 +105,11 @@ function updateDisplay() {
         // Small delay for smooth CSS transition
         setTimeout(() => {
             imgElement.classList.remove('hidden');
-            loader.style.display = 'none';
+            if (loaderContainer) loaderContainer.style.display = 'none';
         }, 100);
     };
     tempImg.onerror = () => {
-        loader.style.display = 'none';
+        if (loaderContainer) loaderContainer.style.display = 'none';
         console.error('Failed to load image:', imgUrl);
     };
     tempImg.src = imgUrl;

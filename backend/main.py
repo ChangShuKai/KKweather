@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 import json
+from datetime import datetime
 from contextlib import asynccontextmanager
 from .fetcher import get_latest_files
 from .processor import process_images
@@ -33,8 +34,8 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(job_fetch_and_process, 'interval', minutes=10)
     scheduler.start()
     
-    # Run once at startup
-    job_fetch_and_process()
+    # Run once at startup asynchronously to avoid blocking the port binding
+    scheduler.add_job(job_fetch_and_process, 'date', run_date=datetime.now())
     
     yield
     # Shutdown
