@@ -19,13 +19,29 @@
             <div class="controls">
                 <div class="control-group">
                     <h3>影像模式 (View Mode)</h3>
-                    <button class="btn active" data-mode="true_color">
+                    <button class="btn mode-btn active" data-mode="true_color">
                         🌍 真彩色 (True Color)
                         <span class="btn-subtext">綠光增強校正</span>
                     </button>
-                    <button class="btn" data-mode="ir">
+                    <button class="btn mode-btn" data-mode="ir">
                         🌡️ 紅外線 (Infrared)
                         <span class="btn-subtext">夜間/亮溫映射 (Band 14)</span>
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <h3>區域選擇 (Region)</h3>
+                    <button class="btn region-btn active" data-region="global">
+                        🌐 全球全景 (Global)
+                        <span class="btn-subtext">全圓盤</span>
+                    </button>
+                    <button class="btn region-btn" data-region="asia">
+                        🌏 東亞區域 (Asia)
+                        <span class="btn-subtext">局部特寫</span>
+                    </button>
+                    <button class="btn region-btn" data-region="taiwan">
+                        🇹🇼 台灣特寫 (Taiwan)
+                        <span class="btn-subtext">高解析度</span>
                     </button>
                 </div>
 

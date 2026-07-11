@@ -2,12 +2,14 @@ const API_URL = '/api/latest';
 const REFRESH_INTERVAL = 60000; // Check for new data every 1 minute
 
 let currentMode = 'true_color'; // 'true_color' or 'ir'
+let currentRegion = 'global'; // 'global', 'asia', or 'taiwan'
 let currentData = null;
 
 const imgElement = document.getElementById('satellite-img');
 const loader = document.getElementById('loader');
 const timestampDisplay = document.getElementById('timestamp-display');
-const buttons = document.querySelectorAll('.btn');
+const modeButtons = document.querySelectorAll('.mode-btn');
+const regionButtons = document.querySelectorAll('.region-btn');
 const statusIndicator = document.querySelector('.status-indicator');
 const systemStatus = document.getElementById('system-status');
 
@@ -20,16 +22,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEventListeners() {
-    buttons.forEach(btn => {
+    modeButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Remove active class from all
-            buttons.forEach(b => b.classList.remove('active'));
-            // Add active class to clicked
+            modeButtons.forEach(b => b.classList.remove('active'));
             const clickedBtn = e.currentTarget;
             clickedBtn.classList.add('active');
-            
-            // Set mode and update image
             currentMode = clickedBtn.dataset.mode;
+            updateDisplay();
+        });
+    });
+
+    regionButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            regionButtons.forEach(b => b.classList.remove('active'));
+            const clickedBtn = e.currentTarget;
+            clickedBtn.classList.add('active');
+            currentRegion = clickedBtn.dataset.region;
             updateDisplay();
         });
     });
@@ -77,7 +85,7 @@ async function fetchLatestData() {
 function updateDisplay() {
     if (!currentData) return;
 
-    const imgUrl = currentData[currentMode];
+    const imgUrl = currentData[currentMode]?.[currentRegion];
     if (!imgUrl) return;
 
     // Show loader and hide image for transition
