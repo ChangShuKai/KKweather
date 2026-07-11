@@ -7,23 +7,76 @@ import json
 from datetime import datetime
 from contextlib import asynccontextmanager
 from .fetcher import get_latest_files
-from .processor import process_images
+from .processor import process_taiwan_view, process_asia_view, process_global_view
 
 LATEST_DATA_FILE = os.path.join(os.path.dirname(__file__), 'latest.json')
 
-def job_fetch_and_process():
-    print("Starting scheduled job: Fetch and Process")
+def update_latest_json(region_name, result):
+    if not result:
+        return
+    data = {
+        "true_color": {},
+        "ir": {},
+        "timestamp": result["timestamp"]
+    }
+    if os.path.exists(LATEST_DATA_FILE):
+        try:
+            with open(LATEST_DATA_FILE, 'r') as f:
+                old_data = json.load(f)
+                data["true_color"] = old_data.get("true_color", {})
+                data["ir"] = old_data.get("ir", {})
+        except Exception:
+            pass
+            
+    data["true_color"][region_name] = result["true_color"]
+    data["ir"][region_name] = result["ir"]
+    data["timestamp"] = result["timestamp"]
+    
+    with open(LATEST_DATA_FILE, 'w') as f:
+        json.dump(data, f)
+
+def job_fetch_and_process_taiwan():
+    print("Starting scheduled job: Taiwan View")
     downloaded_files = get_latest_files()
     if downloaded_files:
-        print(f"Downloaded {len(downloaded_files)} files. Processing...")
+        print(f"Downloaded {len(downloaded_files)} files. Processing Taiwan View...")
         download_dir = os.path.dirname(downloaded_files[0])
-        result = process_images(download_dir)
+        result = process_taiwan_view(download_dir)
         if result:
-            with open(LATEST_DATA_FILE, 'w') as f:
-                json.dump(result, f)
-            print("Job completed successfully.")
+            update_latest_json("taiwan", result)
+            print("Taiwan View Job completed successfully.")
         else:
-            print("Job failed during processing.")
+            print("Taiwan View Job failed during processing.")
+    else:
+        print("No new files downloaded.")
+
+def job_fetch_and_process_asia():
+    print("Starting scheduled job: Asia View")
+    downloaded_files = get_latest_files()
+    if downloaded_files:
+        print(f"Downloaded {len(downloaded_files)} files. Processing Asia View...")
+        download_dir = os.path.dirname(downloaded_files[0])
+        result = process_asia_view(download_dir)
+        if result:
+            update_latest_json("asia", result)
+            print("Asia View Job completed successfully.")
+        else:
+            print("Asia View Job failed during processing.")
+    else:
+        print("No new files downloaded.")
+
+def job_fetch_and_process_global():
+    print("Starting scheduled job: Global View")
+    downloaded_files = get_latest_files()
+    if downloaded_files:
+        print(f"Downloaded {len(downloaded_files)} files. Processing Global View...")
+        download_dir = os.path.dirname(downloaded_files[0])
+        result = process_global_view(download_dir)
+        if result:
+            update_latest_json("global", result)
+            print("Global View Job completed successfully.")
+        else:
+            print("Global View Job failed during processing.")
     else:
         print("No new files downloaded.")
 
@@ -31,11 +84,17 @@ def job_fetch_and_process():
 async def lifespan(app: FastAPI):
     # Startup
     scheduler = BackgroundScheduler()
-    scheduler.add_job(job_fetch_and_process, 'interval', minutes=10)
+    # Job 1 (Taiwan): Runs every 10 minutes (e.g., at minute 0, 10, 20...)
+    scheduler.add_job(job_fetch_and_process_taiwan, 'cron', minute='0,10,20,30,40,50')
+    # Job 2 (Asia): Runs every 10 minutes, staggered by 2 minutes (e.g., at minute 2, 12, 22...)
+    scheduler.add_job(job_fetch_and_process_asia, 'cron', minute='2,12,22,32,42,52')
+    # Job 3 (Global): Runs every 10 minutes, staggered by 4 minutes (e.g., at minute 4, 14, 24...)
+    scheduler.add_job(job_fetch_and_process_global, 'cron', minute='4,14,24,34,44,54')
+    
     scheduler.start()
     
     # Run once at startup asynchronously to avoid blocking the port binding
-    scheduler.add_job(job_fetch_and_process, 'date', run_date=datetime.now())
+    scheduler.add_job(job_fetch_and_process_taiwan, 'date', run_date=datetime.now())
     
     yield
     # Shutdown
