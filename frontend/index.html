@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Himawari-9 衛星即時觀測系統</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -85,6 +85,16 @@
                 <img id="satellite-img" src="" alt="Himawari-9 Satellite Image" class="hidden">
             </div>
         </main>
+
+        <!-- Right Side Live Logs Panel -->
+        <aside class="log-panel glass-panel">
+            <div class="log-header">
+                <h3>即時運算日誌 (Live Logs)</h3>
+            </div>
+            <div class="log-content" id="live-log-content">
+                <div class="log-line">Waiting for logs...</div>
+            </div>
+        </aside>
     </div>
     
     <script src="script.js"></script>

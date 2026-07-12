@@ -1,5 +1,7 @@
 const API_URL = '/api/latest';
+const LOGS_URL = '/api/logs';
 const REFRESH_INTERVAL = 60000; // Check for new data every 1 minute
+const LOG_INTERVAL = 2000; // Check logs every 2 seconds
 
 let currentMode = 'true_color'; // 'true_color' or 'ir'
 let currentRegion = 'taiwan'; // 'global', 'asia', or 'taiwan'
@@ -17,8 +19,10 @@ const systemStatus = document.getElementById('system-status');
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     fetchLatestData();
+    fetchLogs();
     // Start polling
     setInterval(fetchLatestData, REFRESH_INTERVAL);
+    setInterval(fetchLogs, LOG_INTERVAL);
 });
 
 function setupEventListeners() {
@@ -133,4 +137,47 @@ function updateDisplay() {
         console.error('Failed to load image:', imgUrl);
     };
     tempImg.src = imgUrl;
+}
+
+// Log Fetching and Parsing
+async function fetchLogs() {
+    try {
+        const response = await fetch(LOGS_URL);
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        const logContent = document.getElementById('live-log-content');
+        if (logContent && data.logs) {
+            logContent.innerHTML = '';
+            
+            // Highlight rules
+            const highlights = ['Downloading', 'Starting scheduled job', 'Using', 'Loading True Color', 'completed successfully', 'failed', 'Processing'];
+            
+            data.logs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = 'log-line';
+                
+                // Check if line should be highlighted
+                const isHighlight = highlights.some(h => log.includes(h));
+                if (isHighlight) {
+                    div.classList.add('highlight');
+                }
+                
+                div.textContent = log;
+                logContent.appendChild(div);
+            });
+            
+            // Auto scroll to bottom
+            logContent.scrollTop = logContent.scrollHeight;
+            
+            // Dynamically update the loading text if loader is visible
+            const loaderContainer = document.getElementById('loader-container');
+            const loadingText = document.getElementById('loading-text');
+            if (loaderContainer && loaderContainer.style.display !== 'none' && data.logs.length > 0) {
+                loadingText.textContent = data.logs[data.logs.length - 1];
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching logs:', error);
+    }
 }

@@ -236,3 +236,84 @@ h3 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* Right Side Log Panel */
+.log-panel {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    z-index: 10;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+    border-left: 1px solid var(--panel-border);
+}
+
+.log-header {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.log-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    line-height: 1.4;
+    padding-right: 8px;
+}
+
+/* Custom scrollbar for logs */
+.log-content::-webkit-scrollbar {
+    width: 6px;
+}
+.log-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.log-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+.log-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.log-line {
+    word-break: break-all;
+    padding-left: 8px;
+    position: relative;
+}
+
+.log-line::before {
+    content: ">";
+    position: absolute;
+    left: 0;
+    color: var(--accent-color);
+}
+
+.log-line.highlight {
+    color: var(--accent-hover);
+    font-weight: 700;
+}
+
+@media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column;
+    }
+    .sidebar, .log-panel {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--panel-border);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    }
+    .log-panel {
+        border-bottom: none;
+        border-top: 1px solid var(--panel-border);
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+        max-height: 250px;
+    }
+}

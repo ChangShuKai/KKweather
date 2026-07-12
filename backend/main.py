@@ -1,5 +1,7 @@
 import os
+import sys
 import psutil
+from collections import deque
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,26 @@ from .fetcher import get_latest_files
 from .processor import process_taiwan_view, process_asia_view, process_global_view
 
 LATEST_DATA_FILE = os.path.join(os.path.dirname(__file__), 'latest.json')
+
+log_buffer = deque(maxlen=100)
+
+class LogInterceptor:
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, data):
+        self.stream.write(data)
+        if isinstance(data, str) and data.strip():
+            lines = data.strip().split('\n')
+            for line in lines:
+                if line:
+                    log_buffer.append(line)
+
+    def flush(self):
+        self.stream.flush()
+
+sys.stdout = LogInterceptor(sys.stdout)
+sys.stderr = LogInterceptor(sys.stderr)
 
 def update_latest_json(region_name, result):
     if not result:
@@ -141,17 +163,17 @@ frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fronten
 def get_latest():
     images_dir = os.path.join(static_dir, "images")
     if not os.path.exists(images_dir) or not os.path.exists(LATEST_DATA_FILE):
-        return {"status": "processing"}
+        return {"status": "processing", "message": log_buffer[-1] if log_buffer else "Initial satellite rendering in progress..."}
         
     try:
         with open(LATEST_DATA_FILE, 'r') as f:
             data = json.load(f)
             latest_ts = data.get("timestamp")
     except Exception:
-        return {"status": "processing"}
+        return {"status": "processing", "message": log_buffer[-1] if log_buffer else "Initial satellite rendering in progress..."}
 
     if not latest_ts:
-        return {"status": "processing"}
+        return {"status": "processing", "message": log_buffer[-1] if log_buffer else "Initial satellite rendering in progress..."}
 
     response = {
         "status": "partial",
@@ -175,6 +197,10 @@ def get_latest():
         response["status"] = "completed"
         
     return response
+
+@app.get("/api/logs")
+def get_logs():
+    return {"logs": list(log_buffer)}
 
 @app.get("/api/status")
 async def remote_android_metrics():
