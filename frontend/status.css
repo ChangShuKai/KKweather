@@ -1,0 +1,229 @@
+/* status.css - Specific styles for the System Status Dashboard */
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow-y: auto;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(20, 25, 35, 0.6);
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.back-btn {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+
+.back-btn:hover {
+    color: var(--accent-color);
+}
+
+.dashboard-header h1 {
+    font-size: 28px;
+    background: linear-gradient(90deg, #fff, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 20px;
+    color: var(--success-color);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.status-badge.offline {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    box-shadow: 0 0 8px currentColor;
+    animation: pulse 2s infinite;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.card {
+    padding: 32px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(20, 25, 35, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card h2 {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Gauge Styles */
+.gauge-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 24px;
+}
+
+.gauge-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.05);
+    stroke-width: 12;
+}
+
+.gauge-progress {
+    fill: none;
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 502.65; /* 2 * pi * r (r=80) */
+    stroke-dashoffset: 502.65;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cpu-progress {
+    stroke: url(#cpuGradient);
+}
+
+.mem-progress {
+    stroke: url(#memGradient);
+}
+
+.gauge-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.gauge-value span:first-child {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.gauge-value .unit {
+    font-size: 20px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Metrics and Info */
+.metric-footer {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: auto;
+}
+
+.metric-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.metric-value {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.text-accent {
+    color: var(--accent-color);
+}
+
+/* Info Card List */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.info-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.info-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status Dashboard</title>
+    <!-- Use shared variables if possible, but status.css has specific dashboard styles -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="status.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header glass-panel">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">← 返回觀測台</a>
+                <h1>Server Core 監控中心</h1>
+            </div>
+            <div class="header-right">
+                <div class="status-badge" id="server-status-badge">
+                    <span class="status-dot"></span>
+                    <span id="server-status-text">連線中</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- CPU Gauge Card -->
+            <div class="card glass-panel gauge-card">
+                <h2>CPU Usage</h2>
+                <div class="gauge-container">
+                    <svg class="gauge-svg" viewBox="0 0 200 200">
+                        <defs>
+                            <linearGradient id="cpuGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                            <filter id="cpuGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="8" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        <!-- Background ring -->
+                        <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+                        <!-- Progress ring -->
+                        <circle class="gauge-progress cpu-progress" cx="100" cy="100" r="80" transform="rotate(-90 100 100)" filter="url(#cpuGlow)"></circle>
+                    </svg>
+                    <div class="gauge-value">
+                        <span id="cpu-value">0</span><span class="unit">%</span>
+                    </div>
+                </div>
+                <div class="metric-footer">
+                    <span class="metric-label">Logical Cores:</span>
+                    <span class="metric-value font-mono" id="cpu-cores">-</span>
+                </div>
+            </div>
+
+            <!-- Memory Gauge Card -->
+            <div class="card glass-panel gauge-card">
+                <h2>Memory Usage</h2>
+                <div class="gauge-container">
+                    <svg class="gauge-svg" viewBox="0 0 200 200">
+                        <defs>
+                            <linearGradient id="memGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#10b981" />
+                                <stop offset="100%" stop-color="#34d399" />
+                            </linearGradient>
+                            <filter id="memGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="8" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+                        <circle class="gauge-progress mem-progress" cx="100" cy="100" r="80" transform="rotate(-90 100 100)" filter="url(#memGlow)"></circle>
+                    </svg>
+                    <div class="gauge-value">
+                        <span id="mem-value">0</span><span class="unit">%</span>
+                    </div>
+                </div>
+                <div class="metric-footer">
+                    <span class="metric-label">Used / Total:</span>
+                    <span class="metric-value font-mono"><span id="mem-used">-</span> / <span id="mem-total">-</span> MB</span>
+                </div>
+            </div>
+
+            <!-- Server Info Card -->
+            <div class="card glass-panel info-card">
+                <h2>Runtime Analytics</h2>
+                <div class="info-list">
+                    <div class="info-row">
+                        <span class="info-label">Server Name</span>
+                        <span class="info-value text-accent" id="server-name">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Free Memory</span>
+                        <span class="info-value font-mono" id="mem-free">- MB</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Process ID</span>
+                        <span class="info-value font-mono" id="runtime-pid">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Active Threads</span>
+                        <span class="info-value font-mono" id="runtime-threads">-</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="status.js"></script>
+</body>
+</html>
