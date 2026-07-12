@@ -133,10 +133,42 @@ frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fronten
 
 @app.get("/api/latest")
 def get_latest():
-    if os.path.exists(LATEST_DATA_FILE):
+    images_dir = os.path.join(static_dir, "images")
+    if not os.path.exists(images_dir) or not os.path.exists(LATEST_DATA_FILE):
+        return {"status": "processing"}
+        
+    try:
         with open(LATEST_DATA_FILE, 'r') as f:
-            return json.load(f)
-    return {"status": "processing"}
+            data = json.load(f)
+            latest_ts = data.get("timestamp")
+    except Exception:
+        return {"status": "processing"}
+
+    if not latest_ts:
+        return {"status": "processing"}
+
+    response = {
+        "status": "partial",
+        "true_color": {},
+        "ir": {},
+        "timestamp": latest_ts
+    }
+    
+    all_done = True
+    for view in ["true_color", "ir"]:
+        for region in ["global", "asia", "taiwan"]:
+            filename = f"himawari_{view}_{region}_{latest_ts}.png"
+            filepath = os.path.join(images_dir, filename)
+            if os.path.exists(filepath):
+                response[view][region] = f"/static/images/{filename}"
+            else:
+                response[view][region] = None
+                all_done = False
+                
+    if all_done:
+        response["status"] = "completed"
+        
+    return response
 
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
