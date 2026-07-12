@@ -49,16 +49,30 @@ def _process_single_view(files, region_name, bbox):
         if bbox:
             print(f"[{region_name}] Cropping True Color to bounding box...")
             cropped_scn_tc = scn_tc.crop(ll_bbox=bbox)
-            print(f"[{region_name}] Resampling cropped True Color...")
-            local_scn_tc = cropped_scn_tc.resample(cropped_scn_tc.finest_area())
+            print(f"[{region_name}] Resampling cropped True Color to 1km using native resampler...")
+            target_area = cropped_scn_tc.coarsest_area()
+            local_scn_tc = cropped_scn_tc.resample(target_area, resampler='native')
             del cropped_scn_tc
         else:
-            print(f"[{region_name}] Resampling True Color to finest native area...")
-            local_scn_tc = scn_tc.resample(scn_tc.finest_area())
+            print(f"[{region_name}] Resampling Global True Color to 1km using native resampler...")
+            target_area = scn_tc.coarsest_area()
+            local_scn_tc = scn_tc.resample(target_area, resampler='native')
             
         r = local_scn_tc['B03'].data
         g = local_scn_tc['B02'].data
         b = local_scn_tc['B01'].data
+        
+        # Apply stride to drastically reduce memory usage before computing
+        if region_name == "global":
+            stride = 4  # 1km -> 4km (approx 2750x2750)
+        elif region_name == "asia":
+            stride = 2  # 1km -> 2km (approx 2000x2000)
+        else:
+            stride = 1  # 1km (approx 600x500)
+            
+        r = r[::stride, ::stride]
+        g = g[::stride, ::stride]
+        b = b[::stride, ::stride]
         
         g_enhanced = da.clip(g * 1.2 - r * 0.1, 0, 100)
         
@@ -97,15 +111,22 @@ def _process_single_view(files, region_name, bbox):
         
         if bbox:
             print(f"[{region_name}] Cropping Infrared to bounding box...")
-            cropped_scn_ir = scn_ir.crop(ll_bbox=bbox)
-            print(f"[{region_name}] Resampling cropped Infrared...")
-            local_scn_ir = cropped_scn_ir.resample(cropped_scn_ir.finest_area())
-            del cropped_scn_ir
+            local_scn_ir = scn_ir.crop(ll_bbox=bbox)
         else:
-            print(f"[{region_name}] Resampling Infrared to finest native area...")
-            local_scn_ir = scn_ir.resample(scn_ir.finest_area())
+            print(f"[{region_name}] Using native B14 area for Global Infrared...")
+            local_scn_ir = scn_ir
             
         ir = local_scn_ir['B14'].data
+        
+        # B14 is natively 2km
+        if region_name == "global":
+            stride = 2  # 2km -> 4km (approx 2750x2750)
+        elif region_name == "asia":
+            stride = 1  # 2km (approx 2000x2000)
+        else:
+            stride = 1  # 2km (approx 300x250)
+            
+        ir = ir[::stride, ::stride]
         
         def process_ir_block(arr):
             import numpy as np
