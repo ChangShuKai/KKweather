@@ -89,12 +89,12 @@ async def lifespan(app: FastAPI):
             'max_instances': 1
         }
     )
-    # Job 1 (Taiwan): Runs every 10 minutes (e.g., at minute 0, 10, 20...)
-    scheduler.add_job(job_fetch_and_process_taiwan, 'cron', minute='0,10,20,30,40,50')
-    # Job 2 (Asia): Runs every 10 minutes, staggered by 2 minutes (e.g., at minute 2, 12, 22...)
-    scheduler.add_job(job_fetch_and_process_asia, 'cron', minute='2,12,22,32,42,52')
-    # Job 3 (Global): Runs every 10 minutes, staggered by 4 minutes (e.g., at minute 4, 14, 24...)
-    scheduler.add_job(job_fetch_and_process_global, 'cron', minute='4,14,24,34,44,54')
+    # Job 1 (Taiwan): Runs every 20 minutes, starting at minute 0 (e.g., at minute 0, 20, 40)
+    scheduler.add_job(job_fetch_and_process_taiwan, 'cron', minute='0,20,40')
+    # Job 2 (Asia): Runs every 20 minutes, staggered by 5 minutes (e.g., at minute 5, 25, 45)
+    scheduler.add_job(job_fetch_and_process_asia, 'cron', minute='5,25,45')
+    # Job 3 (Global): Runs every 20 minutes, staggered by 10 minutes (e.g., at minute 10, 30, 50)
+    scheduler.add_job(job_fetch_and_process_global, 'cron', minute='10,30,50')
     
     scheduler.start()
     
