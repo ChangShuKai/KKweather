@@ -83,7 +83,12 @@ def job_fetch_and_process_global():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    scheduler = BackgroundScheduler()
+    scheduler = BackgroundScheduler(
+        job_defaults={
+            'coalesce': True,
+            'max_instances': 1
+        }
+    )
     # Job 1 (Taiwan): Runs every 10 minutes (e.g., at minute 0, 10, 20...)
     scheduler.add_job(job_fetch_and_process_taiwan, 'cron', minute='0,10,20,30,40,50')
     # Job 2 (Asia): Runs every 10 minutes, staggered by 2 minutes (e.g., at minute 2, 12, 22...)
