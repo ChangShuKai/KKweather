@@ -46,13 +46,15 @@ def _process_single_view(files, region_name, bbox):
         scn_tc = Scene(filenames=files, reader=reader)
         scn_tc.load(['B01', 'B02', 'B03'])
         
-        print(f"[{region_name}] Resampling True Color to finest native area...")
-        global_scn_tc = scn_tc.resample(scn_tc.finest_area())
-        
         if bbox:
-            local_scn_tc = global_scn_tc.crop(ll_bbox=bbox)
+            print(f"[{region_name}] Cropping True Color to bounding box...")
+            cropped_scn_tc = scn_tc.crop(ll_bbox=bbox)
+            print(f"[{region_name}] Resampling cropped True Color...")
+            local_scn_tc = cropped_scn_tc.resample(cropped_scn_tc.finest_area())
+            del cropped_scn_tc
         else:
-            local_scn_tc = global_scn_tc
+            print(f"[{region_name}] Resampling True Color to finest native area...")
+            local_scn_tc = scn_tc.resample(scn_tc.finest_area())
             
         r = local_scn_tc['B03'].data
         g = local_scn_tc['B02'].data
@@ -75,17 +77,15 @@ def _process_single_view(files, region_name, bbox):
         print(f"[{region_name}] Computing True Color array...")
         rgb_np = rgb_da.compute()
         
-        filename_tc = f"himawari_true_color_{region_name}_{timestamp_str}.png"
+        filename_tc = f"himawari_true_color_{region_name}_{timestamp_str}.webp"
         path_tc = os.path.join(STATIC_DIR, filename_tc)
         print(f"[{region_name}] Saving {filename_tc}...")
-        Image.fromarray(rgb_np).save(path_tc)
+        Image.fromarray(rgb_np).save(path_tc, format="WEBP", quality=85)
         
         results["true_color"] = f"/static/images/{filename_tc}"
         
         del rgb_np, rgb_da, r_norm, g_norm, b_norm, r, g, b, g_enhanced
-        if bbox:
-            del local_scn_tc
-        del global_scn_tc, scn_tc
+        del local_scn_tc, scn_tc
         gc.collect()
 
         # ==========================================
@@ -95,13 +95,15 @@ def _process_single_view(files, region_name, bbox):
         scn_ir = Scene(filenames=files, reader=reader)
         scn_ir.load(['B14'])
         
-        print(f"[{region_name}] Resampling Infrared to finest native area...")
-        global_scn_ir = scn_ir.resample(scn_ir.finest_area())
-        
         if bbox:
-            local_scn_ir = global_scn_ir.crop(ll_bbox=bbox)
+            print(f"[{region_name}] Cropping Infrared to bounding box...")
+            cropped_scn_ir = scn_ir.crop(ll_bbox=bbox)
+            print(f"[{region_name}] Resampling cropped Infrared...")
+            local_scn_ir = cropped_scn_ir.resample(cropped_scn_ir.finest_area())
+            del cropped_scn_ir
         else:
-            local_scn_ir = global_scn_ir
+            print(f"[{region_name}] Resampling Infrared to finest native area...")
+            local_scn_ir = scn_ir.resample(scn_ir.finest_area())
             
         ir = local_scn_ir['B14'].data
         
@@ -120,17 +122,15 @@ def _process_single_view(files, region_name, bbox):
         print(f"[{region_name}] Computing Infrared array...")
         ir_rgb_np = ir_rgb_da.compute()
         
-        filename_ir = f"himawari_ir_{region_name}_{timestamp_str}.png"
+        filename_ir = f"himawari_ir_{region_name}_{timestamp_str}.webp"
         path_ir = os.path.join(STATIC_DIR, filename_ir)
         print(f"[{region_name}] Saving {filename_ir}...")
-        Image.fromarray(ir_rgb_np).save(path_ir)
+        Image.fromarray(ir_rgb_np).save(path_ir, format="WEBP", quality=85)
         
         results["ir"] = f"/static/images/{filename_ir}"
         
         del ir_rgb_np, ir_rgb_da, ir
-        if bbox:
-            del local_scn_ir
-        del global_scn_ir, scn_ir
+        del local_scn_ir, scn_ir
 
         print(f"[{region_name}] Finished processing. Flushing memory.")
         # Ensure dask caches are cleared per requirements

@@ -162,7 +162,7 @@ def get_latest():
     all_done = True
     for view in ["true_color", "ir"]:
         for region in ["global", "asia", "taiwan"]:
-            filename = f"himawari_{view}_{region}_{latest_ts}.png"
+            filename = f"himawari_{view}_{region}_{latest_ts}.webp"
             filepath = os.path.join(images_dir, filename)
             if os.path.exists(filepath):
                 response[view][region] = f"/static/images/{filename}"
