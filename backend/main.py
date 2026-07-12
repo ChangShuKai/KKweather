@@ -87,7 +87,7 @@ def job_fetch_and_process_all():
         # PIECE 1: TAIWAN (Segment 4)
         # ---------------------------------------------------------
         print("[Progress] 15% - Downloading Segment 4 for Taiwan...")
-        tw_files = fetch_segments(prefix, ['_S0410_'])
+        tw_files = fetch_segments(prefix, ['_S0410.'])
         
         print(f"[Progress] 20% - Processing Taiwan True Color ({len(tw_files)} files)...")
         tw_tc = process_taiwan_view(tw_files, "true_color")
@@ -102,7 +102,7 @@ def job_fetch_and_process_all():
         # ---------------------------------------------------------
         print("[Progress] 45% - Downloading Segments 3, 5 for Asia...")
         # S04 is already downloaded, it will just be verified
-        asia_files = fetch_segments(prefix, ['_S0310_', '_S0410_', '_S0510_'])
+        asia_files = fetch_segments(prefix, ['_S0310.', '_S0410.', '_S0510.'])
         
         print(f"[Progress] 50% - Processing Asia True Color ({len(asia_files)} files)...")
         asia_tc = process_asia_view(asia_files, "true_color")
