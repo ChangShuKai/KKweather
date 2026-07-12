@@ -77,54 +77,55 @@ def process_view(files, region_name, bbox, mode):
             old_area = local_scn_tc['B01'].attrs['area']
             
             # Downsample AreaDefinition manually to save huge amounts of memory
-            if region_name == "global":
-                stride = 4
-            elif region_name == "asia":
-                stride = 2
-            else:
-                stride = 1
-                
-            new_width = old_area.width // stride
-            new_height = old_area.height // stride
+            stride_b01 = 4 if region_name == "global" else (2 if region_name == "asia" else 1)
+            stride_b03 = stride_b01 * 2  # B03 is native 500m, B01/B02 are 1000m
             
+            # Extract underlying dask arrays and slice them directly
+            r_da = local_scn_tc['B03'].data[::stride_b03, ::stride_b03]
+            g_da = local_scn_tc['B02'].data[::stride_b01, ::stride_b01]
+            b_da = local_scn_tc['B01'].data[::stride_b01, ::stride_b01]
+            
+            # Evaluate sequentially to avoid peak memory explosion
+            print(f"[{region_name}] Computing True Color B03...")
+            r_np = r_da.compute().astype(np.float32, copy=False)
+            print(f"[{region_name}] Computing True Color B02...")
+            g_np = g_da.compute().astype(np.float32, copy=False)
+            print(f"[{region_name}] Computing True Color B01...")
+            b_np = b_da.compute().astype(np.float32, copy=False)
+            
+            # Match dimensions (sometimes integer division causes 1px difference)
+            min_h = min(r_np.shape[0], g_np.shape[0], b_np.shape[0])
+            min_w = min(r_np.shape[1], g_np.shape[1], b_np.shape[1])
+            r_np = r_np[:min_h, :min_w]
+            g_np = g_np[:min_h, :min_w]
+            b_np = b_np[:min_h, :min_w]
+            
+            print(f"[{region_name}] Applying Gamma stretch in-place...")
+            # Pseudo True Color mixing in-place to enhance vegetation
+            g_true = np.clip(g_np * 1.05 - b_np * 0.05, 0, 100)
+            
+            r_norm = enhance_rgb(r_np)
+            g_norm = enhance_rgb(g_true)
+            b_norm = enhance_rgb(b_np)
+            
+            rgb_np = np.stack([r_norm, g_norm, b_norm], axis=-1)
+            
+            print(f"[{region_name}] Generating True Color image...")
+            pil_img = Image.fromarray(rgb_np)
+            
+            # Construct area manually for coastlines
+            old_area = local_scn_tc['B01'].attrs['area']
+            from pyresample.geometry import AreaDefinition
             new_area = AreaDefinition(
                 old_area.area_id, old_area.description, old_area.proj_id, old_area.crs,
-                new_width, new_height, old_area.area_extent
+                min_w, min_h, old_area.area_extent
             )
-            
-            print(f"[{region_name}] Resampling True Color to target area...")
-            new_scn_tc = local_scn_tc.resample(new_area, resampler='native')
-            
-            r = new_scn_tc['B03'].data
-            g = new_scn_tc['B02'].data
-            b = new_scn_tc['B01'].data
-            
-            # Pseudo True Color mixing to enhance vegetation
-            g_true = da.clip(g * 1.05 - b * 0.05, 0, 100)
-            
-            # Gamma correction to brighten dark oceans and land, simulating Rayleigh correction
-            def enhance_rgb(arr):
-                import numpy as np
-                arr = np.nan_to_num(arr) / 100.0
-                arr = np.clip(arr, 0, 1)
-                arr = np.power(arr, 0.6) # Gamma stretch
-                return (arr * 255).astype(np.uint8)
-                
-            r_norm = r.map_blocks(enhance_rgb, dtype=np.uint8)
-            g_norm = g_true.map_blocks(enhance_rgb, dtype=np.uint8)
-            b_norm = b.map_blocks(enhance_rgb, dtype=np.uint8)
-            
-            rgb_da = da.stack([r_norm, g_norm, b_norm], axis=-1)
-            
-            print(f"[{region_name}] Computing True Color image...")
-            rgb_np = rgb_da.compute()
-            pil_img = Image.fromarray(rgb_np)
             
             if has_shapefiles:
                 from pycoast import ContourWriterPIL
                 print(f"[{region_name}] Drawing coastlines and gridlines...")
                 cw = ContourWriterPIL(shapefile_dir)
-                cw.add_coastlines(pil_img, new_area, resolution=res_code, outline='yellow', width=1)
+                cw.add_coastlines(pil_img, new_area, resolution=res_code, outline='yellow')
                 cw.add_grid(pil_img, new_area, (10, 10), (5, 5), outline='yellow', width=1)
             
             filename_tc = f"himawari_true_color_{region_name}_{timestamp_str}.webp"
@@ -134,8 +135,10 @@ def process_view(files, region_name, bbox, mode):
             
             result = f"/static/images/{filename_tc}"
             
-            del rgb_np, rgb_da, r_norm, g_norm, b_norm, r, g, b, g_true
-            del new_scn_tc, local_scn_tc, scn_tc
+            import gc
+            del rgb_np, r_norm, g_norm, b_norm, r_np, g_np, b_np, g_true
+            del r_da, g_da, b_da, local_scn_tc, scn_tc
+            gc.collect()
 
         elif mode == "ir":
             # ==========================================
@@ -191,7 +194,7 @@ def process_view(files, region_name, bbox, mode):
                 from pycoast import ContourWriterPIL
                 print(f"[{region_name}] Drawing coastlines and gridlines for IR...")
                 cw = ContourWriterPIL(shapefile_dir)
-                cw.add_coastlines(pil_img_ir, new_area_ir, resolution=res_code, outline='yellow', width=1)
+                cw.add_coastlines(pil_img_ir, new_area_ir, resolution=res_code, outline='yellow')
                 cw.add_grid(pil_img_ir, new_area_ir, (10, 10), (5, 5), outline='yellow', width=1)
             
             filename_ir = f"himawari_ir_{region_name}_{timestamp_str}.webp"
