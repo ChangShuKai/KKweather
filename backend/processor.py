@@ -53,7 +53,8 @@ def _process_single_view(files, region_name, bbox):
         # 1. True Color Image
         # ==========================================
         print(f"[{region_name}] Loading True Color bands with reader {reader}...")
-        scn_tc = Scene(filenames=files, reader=reader)
+        tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_'])]
+        scn_tc = Scene(filenames=tc_files, reader=reader)
         scn_tc.load(['B01', 'B02', 'B03'])
         
         if bbox:
@@ -116,7 +117,8 @@ def _process_single_view(files, region_name, bbox):
         # 2. Infrared Image
         # ==========================================
         print(f"[{region_name}] Loading Infrared band with reader {reader}...")
-        scn_ir = Scene(filenames=files, reader=reader)
+        ir_files = [f for f in files if '_B14_' in f]
+        scn_ir = Scene(filenames=ir_files, reader=reader)
         scn_ir.load(['B14'])
         
         if bbox:

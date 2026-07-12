@@ -2,6 +2,7 @@ import os
 import boto3
 from datetime import datetime, timedelta, timezone
 import concurrent.futures
+import bz2
 
 AWS_BUCKET = 'noaa-himawari9'
 DATA_PREFIX = 'AHI-L1b-FLDK'  # Often L1b FLDK
@@ -65,13 +66,26 @@ def get_latest_files():
     
     def download_single_file(f):
         filename = os.path.basename(f)
-        local_path = os.path.join(DOWNLOAD_DIR, filename)
-        if not os.path.exists(local_path):
-            print(f"Downloading {filename}...")
-            s3.download_file(AWS_BUCKET, f, local_path)
+        local_bz2_path = os.path.join(DOWNLOAD_DIR, filename)
+        uncompressed_path = local_bz2_path.replace('.bz2', '')
+        
+        if not os.path.exists(uncompressed_path):
+            if not os.path.exists(local_bz2_path):
+                print(f"Downloading {filename}...")
+                s3.download_file(AWS_BUCKET, f, local_bz2_path)
+            
+            print(f"Decompressing {filename}...")
+            with bz2.BZ2File(local_bz2_path, 'rb') as source, open(uncompressed_path, 'wb') as dest:
+                # Read in chunks to avoid memory spikes
+                for data in iter(lambda: source.read(100 * 1024), b''):
+                    dest.write(data)
+            
+            if os.path.exists(local_bz2_path):
+                os.remove(local_bz2_path)
         else:
-            print(f"File {filename} already exists, skipping.")
-        return local_path
+            print(f"File {filename} already decompressed, skipping.")
+            
+        return uncompressed_path
 
     # Download concurrently using up to 10 threads
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
