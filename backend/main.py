@@ -9,7 +9,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import json
 from datetime import datetime
 from contextlib import asynccontextmanager
-from .fetcher import get_latest_files
 from .processor import process_taiwan_view, process_asia_view, process_global_view
 
 LATEST_DATA_FILE = os.path.join(os.path.dirname(__file__), 'latest.json')
@@ -68,23 +67,7 @@ def update_latest_json(region_name, mode, result):
     with open(LATEST_DATA_FILE, 'w') as f:
         json.dump(data, f)
 
-CURRENT_CYCLE_FILE = os.path.join(os.path.dirname(__file__), 'current_cycle.json')
 
-def job_fetch_and_process_taiwan():
-    print("Starting scheduled job: Taiwan View")
-    downloaded_files = get_latest_files()
-    if downloaded_files:
-        print(f"Downloaded {len(downloaded_files)} files. Processing Taiwan View...")
-        with open(CURRENT_CYCLE_FILE, 'w') as f:
-            json.dump({"files": downloaded_files}, f)
-        result = process_taiwan_view(downloaded_files)
-        if result:
-            update_latest_json("taiwan", result)
-            print("Taiwan View Job completed successfully.")
-        else:
-            print("Taiwan View Job failed during processing.")
-    else:
-        print("No new files downloaded.")
 
 def job_fetch_and_process_all():
     print("[Progress] 0% - Starting satellite data pipeline")
