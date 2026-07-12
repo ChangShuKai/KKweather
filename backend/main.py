@@ -1,4 +1,5 @@
 import os
+import psutil
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -174,6 +175,29 @@ def get_latest():
         response["status"] = "completed"
         
     return response
+
+@app.get("/api/status")
+async def remote_android_metrics():
+    vm = psutil.virtual_memory()
+    # Render container has a hard ceiling of 512MB RAM, let's reflect this accurately
+    return {
+        "server_name": "KKweather-Render-Cluster",
+        "status": "online",
+        "cpu": {
+            "usage_percent": psutil.cpu_percent(interval=None),
+            "logical_cores": psutil.cpu_count()
+        },
+        "memory": {
+            "total_mb": 512.0,
+            "used_mb": round(vm.used / (1024 * 1024), 2),
+            "free_mb": round((536870912 - vm.used) / (1024 * 1024), 2),
+            "usage_percent": round((vm.used / 536870912) * 100, 2)
+        },
+        "runtime": {
+            "pid": os.getpid(),
+            "active_threads": psutil.Process().num_threads()
+        }
+    }
 
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
