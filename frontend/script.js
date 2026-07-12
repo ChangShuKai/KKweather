@@ -2,7 +2,7 @@ const API_URL = '/api/latest';
 const REFRESH_INTERVAL = 60000; // Check for new data every 1 minute
 
 let currentMode = 'true_color'; // 'true_color' or 'ir'
-let currentRegion = 'global'; // 'global', 'asia', or 'taiwan'
+let currentRegion = 'taiwan'; // 'global', 'asia', or 'taiwan'
 let currentData = null;
 
 const imgElement = document.getElementById('satellite-img');
