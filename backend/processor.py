@@ -164,10 +164,15 @@ def process_view(files, region_name, bbox, mode):
             
             def process_ir_block(arr):
                 import numpy as np
-                arr = np.nan_to_num(arr, nan=273.15)
-                arr = np.clip(arr, 180, 310)
-                norm = (310.0 - arr) / 130.0
-                indices = np.clip(norm * 255, 0, 255).astype(np.int32)
+                arr = arr.astype(np.float32, copy=False)
+                np.nan_to_num(arr, copy=False, nan=273.15)
+                np.clip(arr, 180.0, 310.0, out=arr)
+                # In-place normalization
+                arr -= 310.0
+                arr /= -130.0
+                arr *= 255.0
+                np.clip(arr, 0, 255, out=arr)
+                indices = arr.astype(np.int32)
                 return IR_LUT[indices]
                 
             ir_rgb_da = ir.map_blocks(process_ir_block, dtype=np.uint8, new_axis=[2], chunks=tuple(ir.chunks) + ((3,),))

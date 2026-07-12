@@ -72,7 +72,15 @@ def update_latest_json(region_name, mode, result):
 def job_fetch_and_process_all():
     print("[Progress] 0% - Starting satellite data pipeline")
     try:
-        from backend.fetcher import find_latest_prefix, fetch_segments
+        from backend.fetcher import find_latest_prefix, fetch_segments, DOWNLOAD_DIR
+        import glob
+        
+        print("[Progress] 2% - Cleaning up old data files...")
+        old_files = glob.glob(os.path.join(DOWNLOAD_DIR, "*.DAT*"))
+        for f in old_files:
+            try: os.remove(f)
+            except: pass
+            
         print("[Progress] 5% - Checking for latest files on AWS S3...")
         prefix = find_latest_prefix()
         

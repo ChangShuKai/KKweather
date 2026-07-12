@@ -60,7 +60,9 @@ def fetch_segments(prefix, segments=None):
         if not os.path.exists(uncompressed_path):
             if not os.path.exists(local_bz2_path):
                 print(f"Downloading {filename}...")
-                s3.download_file(AWS_BUCKET, f, local_bz2_path)
+                from boto3.s3.transfer import TransferConfig
+                config = TransferConfig(max_concurrency=1)
+                s3.download_file(AWS_BUCKET, f, local_bz2_path, Config=config)
             
             print(f"Decompressing {filename}...")
             with bz2.BZ2File(local_bz2_path, 'rb') as source, open(uncompressed_path, 'wb') as dest:
@@ -75,9 +77,8 @@ def fetch_segments(prefix, segments=None):
             
         return uncompressed_path
 
-    # Squeeze performance: use 20 threads to fetch and decompress in parallel. 
-    # bz2 decompression releases the GIL, so this achieves true multi-core processing!
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+    # Use 4 threads to fetch and decompress in parallel to avoid OOM on 512MB limit
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(download_single_file, f): f for f in files_to_download}
         for future in concurrent.futures.as_completed(futures):
             try:
