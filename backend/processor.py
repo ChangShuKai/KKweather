@@ -9,7 +9,7 @@ from PIL import Image
 STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static', 'images')
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-def _process_single_view(download_dir, region_name, bbox):
+def _process_single_view(files, region_name, bbox):
     import dask
     import dask.array as da
     import gc
@@ -18,13 +18,19 @@ def _process_single_view(download_dir, region_name, bbox):
     dask.config.set(scheduler='synchronous')
     dask.config.set({"array.chunk-size": "8MiB"})
 
-    files = glob.glob(os.path.join(download_dir, '*'))
     if not files:
         print("No files to process.")
         return None
 
     reader = 'ahi_nc' if files[0].endswith('.nc') else 'ahi_hsd'
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M")
+    
+    # Extract timestamp from filename (e.g. HS_H09_20260712_0840_...)
+    first_file = os.path.basename(files[0])
+    parts = first_file.split('_')
+    if len(parts) >= 4 and parts[2].isdigit() and parts[3].isdigit():
+        timestamp_str = f"{parts[2]}_{parts[3]}"
+    else:
+        timestamp_str = datetime.now().strftime("%Y%m%d_%H%M")
     
     results = {
         "true_color": None,
@@ -137,11 +143,11 @@ def _process_single_view(download_dir, region_name, bbox):
         print(f"[{region_name}] Error processing images: {e}")
         return None
 
-def process_taiwan_view(download_dir):
-    return _process_single_view(download_dir, "taiwan", (118, 21, 124, 26))
+def process_taiwan_view(files):
+    return _process_single_view(files, "taiwan", (118, 21, 124, 26))
 
-def process_asia_view(download_dir):
-    return _process_single_view(download_dir, "asia", (110, 10, 150, 50))
+def process_asia_view(files):
+    return _process_single_view(files, "asia", (110, 10, 150, 50))
 
-def process_global_view(download_dir):
-    return _process_single_view(download_dir, "global", None)
+def process_global_view(files):
+    return _process_single_view(files, "global", None)

@@ -46,13 +46,16 @@ def update_latest_json(region_name, result):
     with open(LATEST_DATA_FILE, 'w') as f:
         json.dump(data, f)
 
+CURRENT_CYCLE_FILE = os.path.join(os.path.dirname(__file__), 'current_cycle.json')
+
 def job_fetch_and_process_taiwan():
     print("Starting scheduled job: Taiwan View")
     downloaded_files = get_latest_files()
     if downloaded_files:
         print(f"Downloaded {len(downloaded_files)} files. Processing Taiwan View...")
-        download_dir = os.path.dirname(downloaded_files[0])
-        result = process_taiwan_view(download_dir)
+        with open(CURRENT_CYCLE_FILE, 'w') as f:
+            json.dump({"files": downloaded_files}, f)
+        result = process_taiwan_view(downloaded_files)
         if result:
             update_latest_json("taiwan", result)
             print("Taiwan View Job completed successfully.")
@@ -63,33 +66,35 @@ def job_fetch_and_process_taiwan():
 
 def job_fetch_and_process_asia():
     print("Starting scheduled job: Asia View")
-    downloaded_files = get_latest_files()
-    if downloaded_files:
-        print(f"Downloaded {len(downloaded_files)} files. Processing Asia View...")
-        download_dir = os.path.dirname(downloaded_files[0])
-        result = process_asia_view(download_dir)
-        if result:
-            update_latest_json("asia", result)
-            print("Asia View Job completed successfully.")
-        else:
-            print("Asia View Job failed during processing.")
-    else:
-        print("No new files downloaded.")
+    if os.path.exists(CURRENT_CYCLE_FILE):
+        with open(CURRENT_CYCLE_FILE, 'r') as f:
+            downloaded_files = json.load(f).get("files", [])
+        if downloaded_files:
+            print(f"Using {len(downloaded_files)} files from current cycle. Processing Asia View...")
+            result = process_asia_view(downloaded_files)
+            if result:
+                update_latest_json("asia", result)
+                print("Asia View Job completed successfully.")
+            else:
+                print("Asia View Job failed during processing.")
+            return
+    print("No active cycle files found for Asia View.")
 
 def job_fetch_and_process_global():
     print("Starting scheduled job: Global View")
-    downloaded_files = get_latest_files()
-    if downloaded_files:
-        print(f"Downloaded {len(downloaded_files)} files. Processing Global View...")
-        download_dir = os.path.dirname(downloaded_files[0])
-        result = process_global_view(download_dir)
-        if result:
-            update_latest_json("global", result)
-            print("Global View Job completed successfully.")
-        else:
-            print("Global View Job failed during processing.")
-    else:
-        print("No new files downloaded.")
+    if os.path.exists(CURRENT_CYCLE_FILE):
+        with open(CURRENT_CYCLE_FILE, 'r') as f:
+            downloaded_files = json.load(f).get("files", [])
+        if downloaded_files:
+            print(f"Using {len(downloaded_files)} files from current cycle. Processing Global View...")
+            result = process_global_view(downloaded_files)
+            if result:
+                update_latest_json("global", result)
+                print("Global View Job completed successfully.")
+            else:
+                print("Global View Job failed during processing.")
+            return
+    print("No active cycle files found for Global View.")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
