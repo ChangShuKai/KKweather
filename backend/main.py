@@ -87,37 +87,34 @@ def job_fetch_and_process_taiwan():
     else:
         print("No new files downloaded.")
 
-def job_fetch_and_process_asia():
-    print("Starting scheduled job: Asia View")
-    if os.path.exists(CURRENT_CYCLE_FILE):
-        with open(CURRENT_CYCLE_FILE, 'r') as f:
-            downloaded_files = json.load(f).get("files", [])
-        if downloaded_files:
-            print(f"Using {len(downloaded_files)} files from current cycle. Processing Asia View...")
-            result = process_asia_view(downloaded_files)
-            if result:
-                update_latest_json("asia", result)
-                print("Asia View Job completed successfully.")
-            else:
-                print("Asia View Job failed during processing.")
+def job_fetch_and_process_all():
+    print("[Progress] 0% - Starting satellite data pipeline")
+    try:
+        print("[Progress] 5% - Checking for latest files on AWS S3...")
+        files = get_latest_files()
+        
+        if not files:
+            print("[Progress] 100% - No new files to process.")
             return
-    print("No active cycle files found for Asia View.")
 
-def job_fetch_and_process_global():
-    print("Starting scheduled job: Global View")
-    if os.path.exists(CURRENT_CYCLE_FILE):
-        with open(CURRENT_CYCLE_FILE, 'r') as f:
-            downloaded_files = json.load(f).get("files", [])
-        if downloaded_files:
-            print(f"Using {len(downloaded_files)} files from current cycle. Processing Global View...")
-            result = process_global_view(downloaded_files)
-            if result:
-                update_latest_json("global", result)
-                print("Global View Job completed successfully.")
-            else:
-                print("Global View Job failed during processing.")
-            return
-    print("No active cycle files found for Global View.")
+        print(f"Downloaded {len(files)} files. Processing Taiwan View...")
+        print("[Progress] 50% - Processing Taiwan View...")
+        tw_result = process_taiwan_view(files)
+        update_latest_json("taiwan", tw_result)
+        
+        print("Processing Asia View...")
+        print("[Progress] 70% - Processing Asia View...")
+        asia_result = process_asia_view(files)
+        update_latest_json("asia", asia_result)
+        
+        print("Processing Global View...")
+        print("[Progress] 90% - Processing Global View...")
+        global_result = process_global_view(files)
+        update_latest_json("global", global_result)
+        
+        print("[Progress] 100% - All views completed successfully!")
+    except Exception as e:
+        print(f"[Progress] 100% - Job failed: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -128,17 +125,13 @@ async def lifespan(app: FastAPI):
             'max_instances': 1
         }
     )
-    # Job 1 (Taiwan): Runs every 20 minutes, starting at minute 0 (e.g., at minute 0, 20, 40)
-    scheduler.add_job(job_fetch_and_process_taiwan, 'cron', minute='0,20,40')
-    # Job 2 (Asia): Runs every 20 minutes, staggered by 5 minutes (e.g., at minute 5, 25, 45)
-    scheduler.add_job(job_fetch_and_process_asia, 'cron', minute='5,25,45')
-    # Job 3 (Global): Runs every 20 minutes, staggered by 10 minutes (e.g., at minute 10, 30, 50)
-    scheduler.add_job(job_fetch_and_process_global, 'cron', minute='10,30,50')
+    # Run the combined pipeline every 20 minutes
+    scheduler.add_job(job_fetch_and_process_all, 'cron', minute='0,20,40')
     
     scheduler.start()
     
     # Run once at startup asynchronously to avoid blocking the port binding
-    scheduler.add_job(job_fetch_and_process_taiwan, 'date', run_date=datetime.now())
+    scheduler.add_job(job_fetch_and_process_all, 'date', run_date=datetime.now())
     
     yield
     # Shutdown

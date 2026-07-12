@@ -78,9 +78,12 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="image-container" id="image-container">
-                <div class="loader-container" id="loader-container">
-                    <div class="loader" id="loader"></div>
-                    <div class="loading-text" id="loading-text">載入中...</div>
+                <div id="loader-container">
+                    <div class="loader-wrapper">
+                        <div class="loader"></div>
+                        <div id="loading-percent" class="loading-percent">0%</div>
+                    </div>
+                    <div id="loading-text" class="loading-text">Initial satellite rendering in progress...</div>
                 </div>
                 <img id="satellite-img" src="" alt="Himawari-9 Satellite Image" class="hidden">
             </div>

@@ -170,11 +170,35 @@ async function fetchLogs() {
             // Auto scroll to bottom
             logContent.scrollTop = logContent.scrollHeight;
             
-            // Dynamically update the loading text if loader is visible
+            // Dynamically update the loading text and percent
             const loaderContainer = document.getElementById('loader-container');
             const loadingText = document.getElementById('loading-text');
+            const loadingPercent = document.getElementById('loading-percent');
+            
             if (loaderContainer && loaderContainer.style.display !== 'none' && data.logs.length > 0) {
-                loadingText.textContent = data.logs[data.logs.length - 1];
+                const lastLog = data.logs[data.logs.length - 1];
+                
+                // Parse [Progress] XX% from any recent log
+                let currentPercent = '0%';
+                for (let i = data.logs.length - 1; i >= 0; i--) {
+                    const match = data.logs[i].match(/\[Progress\]\s*(\d+)%/);
+                    if (match) {
+                        currentPercent = match[1] + '%';
+                        break;
+                    }
+                }
+                
+                if (loadingPercent) {
+                    loadingPercent.textContent = currentPercent;
+                }
+                
+                // Only show the message part (without the [Progress] prefix)
+                if (loadingText) {
+                    loadingText.textContent = lastLog.replace(/\[Progress\]\s*\d+%\s*-\s*/, '');
+                }
+                
+                // If we are processing, aggressively check for the latest image so it shows instantly
+                fetchLatestData();
             }
         }
     } catch (error) {
