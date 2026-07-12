@@ -49,7 +49,8 @@ function setupEventListeners() {
 
 async function fetchLatestData() {
     try {
-        const response = await fetch(API_URL);
+        const urlWithCacheBuster = `${API_URL}?t=${Date.now()}`;
+        const response = await fetch(urlWithCacheBuster);
         if (!response.ok) throw new Error('Network response was not ok');
         
         const data = await response.json();
@@ -142,7 +143,8 @@ function updateDisplay() {
 // Log Fetching and Parsing
 async function fetchLogs() {
     try {
-        const response = await fetch(LOGS_URL);
+        const urlWithCacheBuster = `${LOGS_URL}?t=${Date.now()}`;
+        const response = await fetch(urlWithCacheBuster);
         if (!response.ok) return;
         const data = await response.json();
         
