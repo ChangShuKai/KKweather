@@ -127,6 +127,9 @@ function updateDisplay() {
     };
     tempImg.onerror = () => {
         if (loaderContainer) loaderContainer.style.display = 'none';
+        if (loadingText) loadingText.textContent = '影像載入失敗，等待下一次更新...';
+        imgElement.classList.remove('hidden');
+        imgElement.alt = "Image failed to load";
         console.error('Failed to load image:', imgUrl);
     };
     tempImg.src = imgUrl;

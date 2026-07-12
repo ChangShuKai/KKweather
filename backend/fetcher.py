@@ -1,6 +1,7 @@
 import os
 import boto3
 from datetime import datetime, timedelta, timezone
+import concurrent.futures
 
 AWS_BUCKET = 'noaa-himawari9'
 DATA_PREFIX = 'AHI-L1b-FLDK'  # Often L1b FLDK
@@ -61,16 +62,29 @@ def get_latest_files():
                 files_to_download.append(f)
                 
     downloaded_paths = []
-    for f in files_to_download:
+    
+    def download_single_file(f):
         filename = os.path.basename(f)
         local_path = os.path.join(DOWNLOAD_DIR, filename)
-        
         if not os.path.exists(local_path):
             print(f"Downloading {filename}...")
             s3.download_file(AWS_BUCKET, f, local_path)
         else:
             print(f"File {filename} already exists, skipping.")
-        downloaded_paths.append(local_path)
+        return local_path
+
+    # Download concurrently using up to 10 threads
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(download_single_file, f): f for f in files_to_download}
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                local_path = future.result()
+                downloaded_paths.append(local_path)
+            except Exception as exc:
+                print(f"File download generated an exception: {exc}")
+                
+    # Sort paths to keep the original logical ordering
+    downloaded_paths.sort()
         
     return downloaded_paths
 

@@ -9,6 +9,16 @@ from PIL import Image
 STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static', 'images')
 os.makedirs(STATIC_DIR, exist_ok=True)
 
+# Pre-compute IR Look-Up Table (LUT) to avoid matplotlib overhead inside Dask blocks
+try:
+    import matplotlib.colormaps as cm
+    _magma = cm.get_cmap('magma')
+except ImportError:
+    import matplotlib.pyplot as plt
+    _magma = plt.get_cmap('magma')
+
+IR_LUT = (_magma(np.linspace(0, 1, 256))[:, :3] * 255).astype(np.uint8)
+
 def _process_single_view(files, region_name, bbox):
     import dask
     import dask.array as da
@@ -80,7 +90,7 @@ def _process_single_view(files, region_name, bbox):
             import numpy as np
             arr = np.nan_to_num(arr)
             arr = np.clip(arr, 0, 100)
-            return (arr / 100.0 * 255).astype(np.uint8)
+            return (arr * 2.55).astype(np.uint8)
             
         r_norm = r.map_blocks(normalize_block, dtype=np.uint8)
         g_norm = g_enhanced.map_blocks(normalize_block, dtype=np.uint8)
@@ -130,13 +140,13 @@ def _process_single_view(files, region_name, bbox):
         
         def process_ir_block(arr):
             import numpy as np
-            import matplotlib.pyplot as plt
             arr = np.nan_to_num(arr, nan=273.15)
             arr = np.clip(arr, 180, 310)
-            norm = (310 - arr) / (310 - 180)
-            cmap = plt.get_cmap('magma')
-            rgba = cmap(norm)
-            return (rgba[..., :3] * 255).astype(np.uint8)
+            # Map 310 -> 0, 180 -> 255
+            norm = (310.0 - arr) / 130.0
+            indices = np.clip(norm * 255, 0, 255).astype(np.int32)
+            # IR_LUT is accessible from the module scope
+            return IR_LUT[indices]
             
         ir_rgb_da = ir.map_blocks(process_ir_block, dtype=np.uint8, new_axis=[2], chunks=tuple(ir.chunks) + ((3,),))
         
