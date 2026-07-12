@@ -50,34 +50,23 @@ def process_view(files, region_name, bbox, mode):
         dask.config.set(scheduler='single-threaded')
         dask.config.set({"array.chunk-size": "32MiB"})
         
-        # We handle shapefiles drawing inline
+            # We handle shapefiles drawing inline
         shapefile_dir = os.path.join(os.path.dirname(__file__), 'shapefiles')
         has_shapefiles = os.path.exists(os.path.join(shapefile_dir, 'gshhs_c.b'))
         
-        if region_name == "global":
-            stride = 4
-        elif region_name == "asia":
-            stride = 2
-        else:
-            stride = 1
-            
         res_code = 'i' if region_name == 'taiwan' else ('l' if region_name == 'asia' else 'c')
         
         if mode == "true_color":
             # ==========================================
-            # 1. True Color Image
+            # 1. True Color Image (Memory Optimized)
             # ==========================================
             print(f"[{region_name}] Loading True Color bands with reader {reader}...")
-            tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_', '_B04_'])]
+            # We only need B01, B02, B03 for pseudo true color
+            tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_'])]
             scn_tc = Scene(filenames=tc_files, reader=reader)
             
-            # Load at 2000m resolution to save massive memory for Global/Asia
-            load_res = 1000 if region_name == "taiwan" else 2000
-            
-            try:
-                scn_tc.load(['true_color'], resolution=load_res)
-            except Exception:
-                scn_tc.load(['true_color'])
+            # Load at 1km native
+            scn_tc.load(['B01', 'B02', 'B03'])
             
             if bbox:
                 print(f"[{region_name}] Cropping True Color to bounding box...")
@@ -85,30 +74,51 @@ def process_view(files, region_name, bbox, mode):
             else:
                 local_scn_tc = scn_tc
                 
-            print(f"[{region_name}] Enhancing True Color...")
-            img = get_enhanced_image(local_scn_tc['true_color'])
+            old_area = local_scn_tc['B01'].attrs['area']
             
-            old_area = local_scn_tc['true_color'].attrs['area']
-            
-            # Adjust stride based on loaded resolution
-            # If global loaded at 2000m, stride=2 gives 4000m. 
+            # Downsample AreaDefinition manually to save huge amounts of memory
             if region_name == "global":
-                actual_stride = 2 if load_res == 2000 else 4
+                stride = 4
             elif region_name == "asia":
-                actual_stride = 1 if load_res == 2000 else 2
+                stride = 2
             else:
-                actual_stride = 1
+                stride = 1
                 
-            if actual_stride > 1:
-                img.data = img.data[:, ::actual_stride, ::actual_stride]
-                
-            print(f"[{region_name}] Computing True Color image...")
-            pil_img = img.pil_image()
+            new_width = old_area.width // stride
+            new_height = old_area.height // stride
             
             new_area = AreaDefinition(
                 old_area.area_id, old_area.description, old_area.proj_id, old_area.crs,
-                pil_img.width, pil_img.height, old_area.area_extent
+                new_width, new_height, old_area.area_extent
             )
+            
+            print(f"[{region_name}] Resampling True Color to target area...")
+            new_scn_tc = local_scn_tc.resample(new_area, resampler='native')
+            
+            r = new_scn_tc['B03'].data
+            g = new_scn_tc['B02'].data
+            b = new_scn_tc['B01'].data
+            
+            # Pseudo True Color mixing to enhance vegetation
+            g_true = da.clip(g * 1.05 - b * 0.05, 0, 100)
+            
+            # Gamma correction to brighten dark oceans and land, simulating Rayleigh correction
+            def enhance_rgb(arr):
+                import numpy as np
+                arr = np.nan_to_num(arr) / 100.0
+                arr = np.clip(arr, 0, 1)
+                arr = np.power(arr, 0.6) # Gamma stretch
+                return (arr * 255).astype(np.uint8)
+                
+            r_norm = r.map_blocks(enhance_rgb, dtype=np.uint8)
+            g_norm = g_true.map_blocks(enhance_rgb, dtype=np.uint8)
+            b_norm = b.map_blocks(enhance_rgb, dtype=np.uint8)
+            
+            rgb_da = da.stack([r_norm, g_norm, b_norm], axis=-1)
+            
+            print(f"[{region_name}] Computing True Color image...")
+            rgb_np = rgb_da.compute()
+            pil_img = Image.fromarray(rgb_np)
             
             if has_shapefiles:
                 from pycoast import ContourWriterPIL
@@ -124,7 +134,8 @@ def process_view(files, region_name, bbox, mode):
             
             result = f"/static/images/{filename_tc}"
             
-            del img, local_scn_tc, scn_tc
+            del rgb_np, rgb_da, r_norm, g_norm, b_norm, r, g, b, g_true
+            del new_scn_tc, local_scn_tc, scn_tc
 
         elif mode == "ir":
             # ==========================================
