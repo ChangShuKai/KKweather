@@ -44,6 +44,11 @@ def process_view(files, region_name, bbox, mode):
     try:
         from pyresample.geometry import AreaDefinition
         from satpy.enhancements.enhancer import get_enhanced_image
+        import dask
+        
+        # Optimize Dask for low-memory environment (Render 512MB)
+        dask.config.set(scheduler='single-threaded')
+        dask.config.set({"array.chunk-size": "32MiB"})
         
         # We handle shapefiles drawing inline
         shapefile_dir = os.path.join(os.path.dirname(__file__), 'shapefiles')
@@ -65,7 +70,14 @@ def process_view(files, region_name, bbox, mode):
             print(f"[{region_name}] Loading True Color bands with reader {reader}...")
             tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_', '_B04_'])]
             scn_tc = Scene(filenames=tc_files, reader=reader)
-            scn_tc.load(['true_color'])
+            
+            # Load at 2000m resolution to save massive memory for Global/Asia
+            load_res = 1000 if region_name == "taiwan" else 2000
+            
+            try:
+                scn_tc.load(['true_color'], resolution=load_res)
+            except Exception:
+                scn_tc.load(['true_color'])
             
             if bbox:
                 print(f"[{region_name}] Cropping True Color to bounding box...")
@@ -78,8 +90,17 @@ def process_view(files, region_name, bbox, mode):
             
             old_area = local_scn_tc['true_color'].attrs['area']
             
-            if stride > 1:
-                img.data = img.data[:, ::stride, ::stride]
+            # Adjust stride based on loaded resolution
+            # If global loaded at 2000m, stride=2 gives 4000m. 
+            if region_name == "global":
+                actual_stride = 2 if load_res == 2000 else 4
+            elif region_name == "asia":
+                actual_stride = 1 if load_res == 2000 else 2
+            else:
+                actual_stride = 1
+                
+            if actual_stride > 1:
+                img.data = img.data[:, ::actual_stride, ::actual_stride]
                 
             print(f"[{region_name}] Computing True Color image...")
             pil_img = img.pil_image()
@@ -125,7 +146,7 @@ def process_view(files, region_name, bbox, mode):
             
             old_area = local_scn_ir['B14'].attrs['area']
             
-            # Since IR is already lower resolution (2km), we divide stride by 2 for global
+            # Since IR is 2km native, stride=2 gives 4km for global
             ir_stride = 2 if region_name == "global" else 1
                 
             ir = ir[::ir_stride, ::ir_stride]
