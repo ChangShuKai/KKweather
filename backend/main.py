@@ -14,23 +14,34 @@ LATEST_DATA_FILE = os.path.join(os.path.dirname(__file__), 'latest.json')
 def update_latest_json(region_name, result):
     if not result:
         return
+        
     data = {
-        "true_color": {},
-        "ir": {},
+        "status": "partial",
+        "true_color": {"global": None, "asia": None, "taiwan": None},
+        "ir": {"global": None, "asia": None, "taiwan": None},
         "timestamp": result["timestamp"]
     }
+    
     if os.path.exists(LATEST_DATA_FILE):
         try:
             with open(LATEST_DATA_FILE, 'r') as f:
                 old_data = json.load(f)
-                data["true_color"] = old_data.get("true_color", {})
-                data["ir"] = old_data.get("ir", {})
+                if old_data.get("timestamp") == result["timestamp"]:
+                    data["true_color"] = old_data.get("true_color", data["true_color"])
+                    data["ir"] = old_data.get("ir", data["ir"])
         except Exception:
             pass
             
     data["true_color"][region_name] = result["true_color"]
     data["ir"][region_name] = result["ir"]
     data["timestamp"] = result["timestamp"]
+    
+    all_done = all(
+        data["true_color"].get(r) is not None and data["ir"].get(r) is not None
+        for r in ["global", "asia", "taiwan"]
+    )
+    if all_done:
+        data["status"] = "completed"
     
     with open(LATEST_DATA_FILE, 'w') as f:
         json.dump(data, f)

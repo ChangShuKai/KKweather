@@ -60,9 +60,13 @@ async function fetchLatestData() {
             return;
         }
 
-        // Check if data is new
-        if (!currentData || currentData.timestamp !== data.timestamp) {
-            console.log('New data received:', data);
+        // Check if data is new or updated
+        const isNewData = !currentData || 
+                          currentData.timestamp !== data.timestamp || 
+                          JSON.stringify(currentData) !== JSON.stringify(data);
+
+        if (isNewData) {
+            console.log('New data received/updated:', data);
             currentData = data;
             
             // Format timestamp for display (YYYYMMDD_HHMM to readable)
@@ -91,12 +95,25 @@ function updateDisplay() {
     if (!currentData) return;
 
     const imgUrl = currentData[currentMode]?.[currentRegion];
-    if (!imgUrl) return;
+    const loaderContainer = document.getElementById('loader-container');
+    const loadingText = document.getElementById('loading-text');
+
+    if (!imgUrl) {
+        // Specific region is not yet available
+        if (loadingText) {
+            const regionNames = { 'taiwan': '台灣', 'asia': '亞洲', 'global': '全球' };
+            const regionName = regionNames[currentRegion] || '';
+            loadingText.textContent = `${regionName}區域正在太空刻錄中...`;
+        }
+        if (loaderContainer) loaderContainer.style.display = 'flex';
+        imgElement.classList.add('hidden');
+        return;
+    }
 
     // Show loader and hide image for transition
     imgElement.classList.add('hidden');
-    const loaderContainer = document.getElementById('loader-container');
     if (loaderContainer) loaderContainer.style.display = 'flex';
+    if (loadingText) loadingText.textContent = '載入中...';
 
     // Preload image
     const tempImg = new Image();
