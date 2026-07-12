@@ -202,22 +202,46 @@ def get_latest():
 def get_logs():
     return {"logs": list(log_buffer)}
 
+def get_container_memory_usage():
+    try:
+        # Cgroups v2
+        if os.path.exists('/sys/fs/cgroup/memory.current'):
+            with open('/sys/fs/cgroup/memory.current', 'r') as f:
+                return int(f.read().strip())
+        # Cgroups v1
+        elif os.path.exists('/sys/fs/cgroup/memory/memory.usage_in_bytes'):
+            with open('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'r') as f:
+                return int(f.read().strip())
+    except Exception:
+        pass
+    # Fallback: process memory (can under-report if there are subprocesses)
+    return psutil.Process().memory_info().rss
+
 @app.get("/api/status")
-async def remote_android_metrics():
-    vm = psutil.virtual_memory()
-    # Render container has a hard ceiling of 512MB RAM, let's reflect this accurately
+def remote_android_metrics():
+    # Use interval=0.1 to get accurate instantaneous CPU usage (runs in threadpool since this is a sync def)
+    cpu_usage = psutil.cpu_percent(interval=0.1)
+    
+    used_bytes = get_container_memory_usage()
+    used_mb = round(used_bytes / (1024 * 1024), 2)
+    
+    # Render container has a hard ceiling of 512MB RAM
+    total_mb = 512.0
+    free_mb = round(total_mb - used_mb, 2)
+    usage_percent = round((used_mb / total_mb) * 100, 2)
+    
     return {
         "server_name": "KKweather-Render-Cluster",
         "status": "online",
         "cpu": {
-            "usage_percent": psutil.cpu_percent(interval=None),
-            "logical_cores": psutil.cpu_count()
+            "usage_percent": cpu_usage,
+            "logical_cores": psutil.cpu_count() or 1
         },
         "memory": {
-            "total_mb": 512.0,
-            "used_mb": round(vm.used / (1024 * 1024), 2),
-            "free_mb": round((536870912 - vm.used) / (1024 * 1024), 2),
-            "usage_percent": round((vm.used / 536870912) * 100, 2)
+            "total_mb": total_mb,
+            "used_mb": used_mb,
+            "free_mb": free_mb,
+            "usage_percent": min(usage_percent, 100.0)
         },
         "runtime": {
             "pid": os.getpid(),

@@ -24,9 +24,9 @@ def _process_single_view(files, region_name, bbox):
     import dask.array as da
     import gc
 
-    # Force Dask to compute immediately without memory hoarding and use small chunks
-    dask.config.set(scheduler='synchronous')
-    dask.config.set({"array.chunk-size": "8MiB"})
+    # Use multi-threading to maximize CPU usage now that memory is stable with mmap
+    dask.config.set(scheduler='threads', num_workers=os.cpu_count() or 4)
+    dask.config.set({"array.chunk-size": "32MiB"})
 
     if not files:
         print("No files to process.")
@@ -166,8 +166,8 @@ def _process_single_view(files, region_name, bbox):
         del local_scn_ir, scn_ir
 
         print(f"[{region_name}] Finished processing. Flushing memory.")
-        # Ensure dask caches are cleared per requirements
-        dask.config.set(scheduler='synchronous')
+        # Revert to default threading
+        dask.config.set(scheduler='threads')
         gc.collect()
         
         return results
