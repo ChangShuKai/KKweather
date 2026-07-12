@@ -34,7 +34,7 @@ class LogInterceptor:
 sys.stdout = LogInterceptor(sys.stdout)
 sys.stderr = LogInterceptor(sys.stderr)
 
-def update_latest_json(region_name, result):
+def update_latest_json(region_name, mode, result):
     if not result:
         return
         
@@ -55,8 +55,7 @@ def update_latest_json(region_name, result):
         except Exception:
             pass
             
-    data["true_color"][region_name] = result["true_color"]
-    data["ir"][region_name] = result["ir"]
+    data[mode][region_name] = result["path"]
     data["timestamp"] = result["timestamp"]
     
     all_done = all(
@@ -90,27 +89,59 @@ def job_fetch_and_process_taiwan():
 def job_fetch_and_process_all():
     print("[Progress] 0% - Starting satellite data pipeline")
     try:
+        from backend.fetcher import find_latest_prefix, fetch_segments
         print("[Progress] 5% - Checking for latest files on AWS S3...")
-        files = get_latest_files()
+        prefix = find_latest_prefix()
         
-        if not files:
+        if not prefix:
             print("[Progress] 100% - No new files to process.")
             return
 
-        print(f"Downloaded {len(files)} files. Processing Taiwan View...")
-        print("[Progress] 50% - Processing Taiwan View...")
-        tw_result = process_taiwan_view(files)
-        update_latest_json("taiwan", tw_result)
+        print(f"[Progress] 10% - Latest data found: {prefix}")
+        from backend.processor import process_taiwan_view, process_asia_view, process_global_view
         
-        print("Processing Asia View...")
-        print("[Progress] 70% - Processing Asia View...")
-        asia_result = process_asia_view(files)
-        update_latest_json("asia", asia_result)
+        # ---------------------------------------------------------
+        # PIECE 1: TAIWAN (Segment 4)
+        # ---------------------------------------------------------
+        print("[Progress] 15% - Downloading Segment 4 for Taiwan...")
+        tw_files = fetch_segments(prefix, ['_S0410_'])
         
-        print("Processing Global View...")
-        print("[Progress] 90% - Processing Global View...")
-        global_result = process_global_view(files)
-        update_latest_json("global", global_result)
+        print(f"[Progress] 20% - Processing Taiwan True Color ({len(tw_files)} files)...")
+        tw_tc = process_taiwan_view(tw_files, "true_color")
+        update_latest_json("taiwan", "true_color", tw_tc)
+        
+        print("[Progress] 35% - Processing Taiwan Infrared...")
+        tw_ir = process_taiwan_view(tw_files, "ir")
+        update_latest_json("taiwan", "ir", tw_ir)
+        
+        # ---------------------------------------------------------
+        # PIECE 2: ASIA (Segments 3, 4, 5)
+        # ---------------------------------------------------------
+        print("[Progress] 45% - Downloading Segments 3, 5 for Asia...")
+        # S04 is already downloaded, it will just be verified
+        asia_files = fetch_segments(prefix, ['_S0310_', '_S0410_', '_S0510_'])
+        
+        print(f"[Progress] 50% - Processing Asia True Color ({len(asia_files)} files)...")
+        asia_tc = process_asia_view(asia_files, "true_color")
+        update_latest_json("asia", "true_color", asia_tc)
+        
+        print("[Progress] 65% - Processing Asia Infrared...")
+        asia_ir = process_asia_view(asia_files, "ir")
+        update_latest_json("asia", "ir", asia_ir)
+        
+        # ---------------------------------------------------------
+        # PIECE 3: GLOBAL (All Segments)
+        # ---------------------------------------------------------
+        print("[Progress] 75% - Downloading remaining segments for Global...")
+        global_files = fetch_segments(prefix, None)
+        
+        print(f"[Progress] 80% - Processing Global True Color ({len(global_files)} files)...")
+        global_tc = process_global_view(global_files, "true_color")
+        update_latest_json("global", "true_color", global_tc)
+        
+        print("[Progress] 90% - Processing Global Infrared...")
+        global_ir = process_global_view(global_files, "ir")
+        update_latest_json("global", "ir", global_ir)
         
         print("[Progress] 100% - All views completed successfully!")
     except Exception as e:
