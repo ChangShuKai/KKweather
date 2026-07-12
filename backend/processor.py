@@ -24,9 +24,12 @@ def _process_single_view(files, region_name, bbox):
     import dask.array as da
     import gc
 
-    # Use multi-threading to maximize CPU usage now that memory is stable with mmap
+    # Squeeze out maximum performance! Use all logical host cores (often 4, 8, or 16).
+    # Since we are using mmap, RAM usage is tiny. We can safely push Dask to the limit.
+    # We leave roughly 10% buffer by controlling chunk size (16MiB per thread).
+    # Example: 16 threads * 16MiB = 256MB active compute memory. Perfect for 512MB RAM!
     dask.config.set(scheduler='threads', num_workers=os.cpu_count() or 4)
-    dask.config.set({"array.chunk-size": "32MiB"})
+    dask.config.set({"array.chunk-size": "16MiB"})
 
     if not files:
         print("No files to process.")

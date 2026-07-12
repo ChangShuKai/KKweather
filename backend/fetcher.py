@@ -87,8 +87,9 @@ def get_latest_files():
             
         return uncompressed_path
 
-    # Download concurrently using up to 10 threads
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    # Squeeze performance: use 20 threads to fetch and decompress in parallel. 
+    # bz2 decompression releases the GIL, so this achieves true multi-core processing!
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         futures = {executor.submit(download_single_file, f): f for f in files_to_download}
         for future in concurrent.futures.as_completed(futures):
             try:
