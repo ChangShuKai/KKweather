@@ -1,15 +1,6 @@
-boto3>=1.34.0
-botocore>=1.34.0
-xarray>=2024.1.0
-netCDF4>=1.6.5
-satpy>=0.46.0
-pyresample>=1.28.1
-matplotlib>=3.8.0
-pillow>=10.2.0
-fastapi>=0.110.0
-uvicorn>=0.29.0
-apscheduler>=3.10.4
-python-multipart>=0.0.9
-psutil>=5.9.0
-pycoast>=1.7.0
-pyshp>=2.3.1
+numpy==1.26.4
+pillow==10.3.0
+requests==2.32.3
+# 如果你的 processor.py 有用到其他氣象或矩陣套件（例如 scipy 或 matplotlib），可以在下方自行補上：
+# matplotlib==3.8.4
+# scipy==1.13.0
