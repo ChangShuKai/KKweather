@@ -27,8 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests
 
-    - name: 執行衛星資料解析
+    - name: 🚀 啟動衛星資料解析 (main.py)
       run: |
+        cd backend
         python main.py
 
     # 新增這一步：自動將產生的最新圖片 Commit 並 Push 回去
