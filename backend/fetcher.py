@@ -94,6 +94,9 @@ def fetch_segments(prefix, segments=None):
 
 if __name__ == '__main__':
     prefix = find_latest_prefix()
-    print("Prefix:", prefix)
-    files = fetch_segments(prefix, ['_S0310.'])  # ❌ 原本寫死 _S0310.
-    print("Files:", files)
+    print("最新 Prefix 基地位置:", prefix)
+    
+    # 💡 終極修正：不要寫死 _S0310.，只要包含 _S03（第三分段）就全抓！
+    # 這樣不管後面是 09 還是 10，都能保證 100% 抓到當下最新的即時影像！
+    files = fetch_segments(prefix, ['_S03'])
+    print("成功抓取最新衛星檔案清單:", files)
