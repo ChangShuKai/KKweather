@@ -22,11 +22,10 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: 安裝依賴套件
+    - name: 📦 安裝氣象大算力套件
       run: |
         python -m pip install --upgrade pip
-        # 這裡根據你解析衛星需要的套件安裝，例如：
-        # pip install numpy pillow webp requests
+        pip install numpy pillow webp requests
 
     - name: 執行衛星資料解析
       run: |
