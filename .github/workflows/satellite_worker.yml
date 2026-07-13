@@ -32,7 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests psutil  # <-- 這裡多加上 psutil
 
-     - name: 💾 自動同步最新衛星圖回倉庫
+    - name: 💾 自動同步最新衛星圖回倉庫
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
