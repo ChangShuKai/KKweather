@@ -95,5 +95,5 @@ def fetch_segments(prefix, segments=None):
 if __name__ == '__main__':
     prefix = find_latest_prefix()
     print("Prefix:", prefix)
-    files = fetch_segments(prefix, ['_S0310.'])
+    files = fetch_segments(prefix, ['_S0310.'])  # ❌ 原本寫死 _S0310.
     print("Files:", files)
