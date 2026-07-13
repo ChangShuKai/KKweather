@@ -51,3 +51,4 @@ jobs:
         # 4. 如果圖片有更新，就 Commit 並 Push
         git diff-index --quiet HEAD || git commit -m "🤖 自動更新【台灣/亞洲/全景】衛星圖 [skip ci]"
         git push
+
