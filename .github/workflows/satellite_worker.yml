@@ -27,10 +27,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests
 
-    - name: 🚀 啟動衛星資料解析 (main.py)
+    - name: 📦 安裝氣象大算力套件
       run: |
-        cd backend
-        python main.py
+        python -m pip install --upgrade pip
+        pip install numpy pillow webp requests psutil  # <-- 這裡多加上 psutil
 
     # 新增這一步：自動將產生的最新圖片 Commit 並 Push 回去
     - name: 自動同步最新圖片回倉庫
