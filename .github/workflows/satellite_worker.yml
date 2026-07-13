@@ -32,17 +32,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests psutil  # <-- 這裡多加上 psutil
 
-    # 新增這一步：自動將產生的最新圖片 Commit 並 Push 回去
-    - name: 自動同步最新圖片回倉庫
+    - name: 💾 自動同步最新衛星圖回倉庫
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
         
-        # 檢查 static/images 資料夾底下有沒有新圖片變動
-        git add static/images/*.webp
+        # 加上 backend/ 確保抓得到圖片
+        git add backend/static/images/*.webp
         
-        # 如果有新圖片才提交，沒有的話就跳過（避免程式報錯）
-        git diff-index --quiet HEAD || git commit -m "🤖 自動更新最新向日葵衛星圖 [skip ci]"
-        
-        # 把圖片推回 GitHub 專案
+        git diff-index --quiet HEAD || git commit -m "🤖 自動更新向日葵衛星圖 [skip ci]"
         git push
