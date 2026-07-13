@@ -32,13 +32,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests psutil  # <-- 這裡多加上 psutil
 
-    - name: 💾 自動同步最新衛星圖回倉庫
+        - name: 💾 自動同步最新衛星圖回倉庫
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
         
-        # 加上 backend/ 確保抓得到圖片
-        git add backend/static/images/*.webp
+        # 🔥 【新增這行】先拉取你在電腦上更新的最新程式碼，避免衝突！
+        git pull --rebase origin main
         
-        git diff-index --quiet HEAD || git commit -m "🤖 自動更新向日葵衛星圖 [skip ci]"
+        # 用 * 號把所有算好的新圖片加進來
+        git add backend/static/images/*.webp
+        git add frontend/static/images/*.webp
+        
+        git diff-index --quiet HEAD || git commit -m "🤖 自動更新【台灣/亞洲/全景】衛星圖 [skip ci]"
         git push
