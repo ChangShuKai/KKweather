@@ -52,7 +52,7 @@ def process_view(files, region_name, bbox, mode):
     try:
         from pyresample.geometry import AreaDefinition
         shapefile_dir = os.path.join(os.path.dirname(__file__), 'shapefiles')
-        has_shapefiles = os.path.exists(os.path.join(shapefile_dir, 'gshhs_c.b'))
+        has_shapefiles = os.path.exists(os.path.join(shapefile_dir, 'GSHHS_c_L1.shp'))
         res_code = 'i' if region_name == 'taiwan' else ('l' if region_name == 'asia' else 'c')
 
         if mode == "true_color":
