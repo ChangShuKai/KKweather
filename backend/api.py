@@ -55,7 +55,15 @@ def get_latest():
 
 @app.get("/api/logs")
 def get_logs():
-    return {"logs": ["[Progress] 100% - 影像正由 GitHub Actions 每 10 分鐘自動同步更新"]}
+    import requests
+    try:
+        # Proxy to GCP server for logs
+        resp = requests.get("http://34.80.61.138:8080/logs", timeout=2)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return {"logs": ["GCP Server 暫時無法連線或尚未產生日誌"]}
 
 @app.get("/api/status")
 def get_status():

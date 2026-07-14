@@ -15,9 +15,11 @@ FRONTEND_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), '
 os.makedirs(FRONTEND_STATIC_DIR, exist_ok=True)
 
 try:
+    # pyrefly: ignore [missing-import]
     import matplotlib.colormaps as cm
     _magma = cm.get_cmap('magma')
 except ImportError:
+    # pyrefly: ignore [name-defined]
     import matplotlib.pyplot as plt
     _magma = plt.get_cmap('magma')
 
