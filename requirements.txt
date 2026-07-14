@@ -1,6 +1,8 @@
 numpy==1.26.4
 pillow==10.3.0
 requests==2.32.3
+fastapi==0.110.0
+uvicorn==0.29.0
 # 如果你的 processor.py 有用到其他氣象或矩陣套件（例如 scipy 或 matplotlib），可以在下方自行補上：
 # matplotlib==3.8.4
 # scipy==1.13.0

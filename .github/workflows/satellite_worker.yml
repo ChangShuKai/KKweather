@@ -27,10 +27,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy pillow webp requests
 
+    - name: 🛠️ 安裝系統級氣象套件依賴
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libproj-dev proj-data proj-bin libgeos-dev
+
     - name: 📦 安裝氣象大算力套件
       run: |
         python -m pip install --upgrade pip
-        pip install numpy pillow webp requests psutil  # <-- 這裡多加上 psutil
+        pip install numpy pillow webp requests psutil satpy pyresample pycoast dask pykdtree xarray h5netcdf netCDF4
+
+    - name: 🚀 執行衛星圖極速生成
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        python backend/main.py
 
     - name: 💾 自動同步最新衛星圖回倉庫
       run: |
@@ -47,6 +58,7 @@ jobs:
         # 3. 🔥 用最安全的方式加入變動的 webp 檔案（就算沒有新檔也不會崩潰）
         git add backend/static/images/*.webp || true
         git add frontend/static/images/*.webp || true
+        git add backend/latest.json || true
         
         # 4. 如果圖片有更新，就 Commit 並 Push
         git diff-index --quiet HEAD || git commit -m "🤖 自動更新【台灣/亞洲/全景】衛星圖 [skip ci]"
