@@ -45,7 +45,7 @@ jobs:
         cd backend/shapefiles
         if [ ! -f "GSHHS_c_L1.shp" ]; then
           curl -sL http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip -o gshhg.zip
-          unzip -q gshhg.zip
+          unzip -qo gshhg.zip
           find . -name "*.shp" -o -name "*.shx" -o -name "*.dbf" -o -name "*.prj" -exec mv {} . \;
           rm -rf GSHHS_shp WDBII_shp gshhg.zip
         fi
