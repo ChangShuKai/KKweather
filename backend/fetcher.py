@@ -40,8 +40,8 @@ def fetch_segments(prefix, segments=None):
     resp = s3.list_objects_v2(Bucket=AWS_BUCKET, Prefix=prefix)
     all_files = [item['Key'] for item in resp.get('Contents', [])]
     
-    # Filter for the bands we need (01, 02, 03, 14)
-    target_bands = ['B01', 'B02', 'B03', 'B14']
+    # Filter for the bands we need (01, 02, 03, 04, 14)
+    target_bands = ['B01', 'B02', 'B03', 'B04', 'B14']
     files_to_download = []
     
     for band in target_bands:

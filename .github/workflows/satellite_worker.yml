@@ -30,12 +30,12 @@ jobs:
     - name: 🛠️ 安裝系統級氣象套件依賴
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libproj-dev proj-data proj-bin libgeos-dev
+        sudo apt-get install -y build-essential libproj-dev proj-data proj-bin libgeos-dev fonts-dejavu
 
     - name: 📦 安裝氣象大算力套件
       run: |
         python -m pip install --upgrade pip
-        pip install numpy pillow webp requests psutil satpy pyresample pycoast dask pykdtree xarray h5netcdf netCDF4 matplotlib scipy boto3
+        pip install numpy pillow webp requests psutil satpy pyresample pycoast dask pykdtree xarray h5netcdf netCDF4 matplotlib scipy boto3 pyspectral pyorbital
 
     - name: 🚀 執行衛星圖極速生成
       env:
