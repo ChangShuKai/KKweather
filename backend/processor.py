@@ -59,27 +59,51 @@ def process_view(files, region_name, bbox, mode):
 
         if mode == "true_color":
             print(f"[{region_name}] 正在載入真彩波段...")
-            tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_', '_B04_'])]
+            tc_files = [f for f in files if any(b in f for b in ['_B01_', '_B02_', '_B03_', '_B04_', '_B14_'])]
             scn_tc = Scene(filenames=tc_files, reader=reader)
-            scn_tc.load(['true_color'])
+            scn_tc.load(['true_color', 'B14'])
 
             local_scn_tc = scn_tc.crop(ll_bbox=bbox) if bbox else scn_tc
             stride = 4 if region_name == "global" else (2 if region_name == "asia" else 1)
-            tc_data = local_scn_tc['true_color'][:, ::stride, ::stride]
-            tc_data = tc_data.compute()
+            
+            tc_data = local_scn_tc['true_color'][:, ::stride, ::stride].compute()
+            ir_data = local_scn_tc['B14'][::stride, ::stride].compute()
 
             from satpy.writers import get_enhanced_image
-            img = get_enhanced_image(tc_data)
-            pil_img = img.pil_image()
+            img_day = get_enhanced_image(tc_data)
+            pil_img_day = img_day.pil_image()
+            
+            img_ir = get_enhanced_image(ir_data)
+            pil_img_ir = img_ir.pil_image().convert("RGB")
 
             from pyresample.geometry import AreaDefinition
             old_area = tc_data.attrs['area']
-            new_area = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img.width, pil_img.height, old_area.area_extent)
+            new_area = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img_day.width, pil_img_day.height, old_area.area_extent)
+
+            from PIL import Image, ImageChops
+            pil_img = pil_img_day # 預設為全白天
 
             if has_shapefiles:
                 from pycoast import ContourWriterPIL
                 from PIL import ImageFont
                 cw = ContourWriterPIL(shapefile_dir)
+                
+                # 1. 製作陸地遮罩
+                land_mask = Image.new('L', pil_img_day.size, 0)
+                shapefile_path = os.path.join(shapefile_dir, f'GSHHS_{res_code}_L1.shp')
+                try:
+                    cw.add_shapefile_shapes(land_mask, new_area, shapefile_path, fill=255)
+                except Exception:
+                    pass
+
+                # 2. 將夜晚紅外線影像的「陸地區域」染成暗紅色 (雲的數值極亮不受影響)
+                red_tint = Image.new("RGB", pil_img_ir.size, (100, 30, 30))
+                ir_tinted = ImageChops.lighter(pil_img_ir, red_tint)
+                ir_final = Image.composite(ir_tinted, pil_img_ir, land_mask)
+                
+                # 3. 日夜無縫融合 (取白天與夜晚兩張圖的最亮值)
+                pil_img = ImageChops.lighter(pil_img_day, ir_final)
+
                 try:
                     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12 if region_name == 'taiwan' else 14)
                 except Exception:
