@@ -29,10 +29,28 @@ def read_root():
 
 @app.get("/api/latest")
 def get_latest():
+    import requests
+    github_url = "https://raw.githubusercontent.com/ChangShuKai/KKweather/main/backend/latest.json"
+    try:
+        headers = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
+        resp = requests.get(github_url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            # 將本地靜態路徑轉換為 GitHub Raw 直接讀取連結
+            for mode in ["true_color", "ir"]:
+                if mode in data:
+                    for region in ["global", "asia", "taiwan"]:
+                        path = data[mode].get(region)
+                        if path and path.startswith("/static/"):
+                            filename = path.split("/")[-1]
+                            data[mode][region] = f"https://raw.githubusercontent.com/ChangShuKai/KKweather/main/backend/static/images/{filename}"
+            return data
+    except Exception:
+        pass
+
     if os.path.exists(LATEST_JSON):
         with open(LATEST_JSON, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data
+            return json.load(f)
     return {"status": "processing", "message": "等待 GitHub Actions 即時運算中..."}
 
 @app.get("/api/logs")
