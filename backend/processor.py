@@ -24,7 +24,9 @@ except ImportError:
 IR_LUT = (_magma(np.linspace(0, 1, 256))[:, :3] * 255).astype(np.uint8)
 
 def enhance_rgb(band):
-    b_min, b_max = np.percentile(band, (1, 99))
+    b_min, b_max = np.percentile(band, (2, 98))
+    if b_max - b_min < 1e-5:
+        b_max = b_min + 1e-5
     band_norm = np.clip((band - b_min) / (b_max - b_min), 0, 1)
     return (np.power(band_norm, 0.55) * 255).astype(np.uint8)
 
@@ -87,6 +89,7 @@ def process_view(files, region_name, bbox, mode):
                 from pycoast import ContourWriterPIL
                 cw = ContourWriterPIL(shapefile_dir)
                 cw.add_coastlines(pil_img, new_area, resolution=res_code, outline='yellow')
+                cw.add_borders(pil_img, new_area, resolution=res_code, outline='cyan', level=1)
                 cw.add_grid(pil_img, new_area, (10, 10), (5, 5), outline='yellow', width=1)
 
             # 儲存帶時間戳記的檔案
@@ -134,6 +137,7 @@ def process_view(files, region_name, bbox, mode):
                 from pycoast import ContourWriterPIL
                 cw = ContourWriterPIL(shapefile_dir)
                 cw.add_coastlines(pil_img_ir, new_area_ir, resolution=res_code, outline='yellow')
+                cw.add_borders(pil_img_ir, new_area_ir, resolution=res_code, outline='cyan', level=1)
                 cw.add_grid(pil_img_ir, new_area_ir, (10, 10), (5, 5), outline='yellow', width=1)
 
             # 儲存帶時間戳記的檔案

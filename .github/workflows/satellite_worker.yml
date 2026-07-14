@@ -41,6 +41,15 @@ jobs:
       env:
         PYTHONPATH: ${{ github.workspace }}
       run: |
+        mkdir -p backend/shapefiles
+        cd backend/shapefiles
+        if [ ! -f "GSHHS_c_L1.shp" ]; then
+          wget -q https://www.ngdc.noaa.gov/mgg/shorelines/data/gshhg/latest/gshhg-shp-2.3.7.zip -O gshhg.zip
+          unzip -q gshhg.zip
+          find . -name "*.shp" -o -name "*.shx" -o -name "*.dbf" -o -name "*.prj" -exec mv {} . \;
+          rm -rf GSHHS_shp WDBII_shp gshhg.zip
+        fi
+        cd ../..
         python backend/main.py
 
     - name: 💾 自動同步最新衛星圖回倉庫
