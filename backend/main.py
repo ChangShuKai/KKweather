@@ -114,6 +114,8 @@ def job_fetch_and_process_all():
         print("[Progress] 100% - All views completed successfully!")
     except Exception as e:
         print(f"[Progress] 100% - Job failed: {e}")
+        import sys
+        sys.exit(1)
 
 if __name__ == "__main__":
     # GitHub Actions 直接作為指令稿執行此主程式
