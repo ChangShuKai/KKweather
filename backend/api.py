@@ -57,6 +57,25 @@ def get_latest():
 def get_logs():
     return {"logs": ["[Progress] 100% - 影像正由 GitHub Actions 每 10 分鐘自動同步更新"]}
 
+@app.get("/api/status")
+def get_status():
+    import requests
+    try:
+        # Proxy to GCP server
+        resp = requests.get("http://34.80.61.138:8080/status", timeout=2)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as e:
+        pass
+    
+    # Fallback response if GCP is unreachable
+    return {
+        "server_name": "GCP Server (Offline)",
+        "cpu": {"usage_percent": 0, "logical_cores": "-"},
+        "memory": {"usage_percent": 0, "used_mb": 0, "total_mb": 0, "free_mb": 0},
+        "runtime": {"pid": "-", "active_threads": "-"}
+    }
+
 # Serve any other frontend HTML files (like status.html)
 @app.get("/{filename}.html")
 def serve_html(filename: str):
