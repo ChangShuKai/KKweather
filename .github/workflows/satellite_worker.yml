@@ -55,12 +55,12 @@ jobs:
         mkdir -p backend/static/images
         mkdir -p frontend/static/images
         
-        # 3. 🔥 用最安全的方式加入變動的 webp 檔案（就算沒有新檔也不會崩潰）
-        git add backend/static/images/*.webp || true
-        git add frontend/static/images/*.webp || true
+        # 3. 🔥 用最安全的方式加入檔案
+        git add backend/static/images/ || true
+        git add frontend/static/images/ || true
         git add backend/latest.json || true
         
-        # 4. 如果圖片有更新，就 Commit 並 Push
-        git diff-index --quiet HEAD || git commit -m "🤖 自動更新【台灣/亞洲/全景】衛星圖 [skip ci]"
-        git push
+        # 4. 如果有已暫存的圖片更新，就 Commit 並 Push
+        git diff --cached --quiet || git commit -m "🤖 自動更新【台灣/亞洲/全景】衛星圖 [skip ci]"
+        git push || true
 
