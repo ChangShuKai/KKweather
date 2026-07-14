@@ -49,7 +49,7 @@ jobs:
         git config --local user.name "GitHub Action Bot"
         
         # 1. 先拉取最新進度，防止衝突
-        git pull --rebase origin main
+        git pull --rebase --autostash origin main
         
         # 2. 🔥 終極防錯：先手動幫它建立這兩個資料夾，確保路徑 100% 存在，Git 就不會報錯
         mkdir -p backend/static/images
