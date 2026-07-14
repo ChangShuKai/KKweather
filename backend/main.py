@@ -111,11 +111,35 @@ def job_fetch_and_process_all():
         global_ir = process_global_view(global_files, "ir")
         update_latest_json("global", "ir", global_ir)
 
+        print("[Progress] 95% - Cleaning up old image folders (keeping latest 12 hours)...")
+        cleanup_old_images()
+
         print("[Progress] 100% - All views completed successfully!")
     except Exception as e:
         print(f"[Progress] 100% - Job failed: {e}")
         import sys
         sys.exit(1)
+
+def cleanup_old_images():
+    from backend.processor import STATIC_DIR, FRONTEND_STATIC_DIR
+    import shutil
+    import os
+    
+    for base_dir in [STATIC_DIR, FRONTEND_STATIC_DIR]:
+        if not os.path.exists(base_dir): continue
+        folders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f)) and len(f) == 13 and '_' in f]
+        folders.sort()
+        
+        # Keep latest 72 folders (12 hours * 6 per hour)
+        if len(folders) > 72:
+            folders_to_delete = folders[:-72]
+            for folder in folders_to_delete:
+                dir_path = os.path.join(base_dir, folder)
+                try:
+                    shutil.rmtree(dir_path)
+                    print(f"Deleted old folder: {dir_path}")
+                except Exception as e:
+                    print(f"Failed to delete {dir_path}: {e}")
 
 if __name__ == "__main__":
     # GitHub Actions 直接作為指令稿執行此主程式

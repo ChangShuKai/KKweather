@@ -121,16 +121,24 @@ def process_view(files, region_name, bbox, mode):
                 cw.add_grid(pil_img, new_area, grid_space, grid_space, outline='yellow', width=1, write_text=True, font=font, text_color='yellow')
 
             # 儲存帶時間戳記的檔案
-            filename_tc = f"himawari_true_color_{region_name}_{timestamp_str}.webp"
-            path_tc = os.path.join(STATIC_DIR, filename_tc)
+            timestamp_dir = os.path.join(STATIC_DIR, timestamp_str)
+            front_timestamp_dir = os.path.join(FRONTEND_STATIC_DIR, timestamp_str)
+            os.makedirs(timestamp_dir, exist_ok=True)
+            os.makedirs(front_timestamp_dir, exist_ok=True)
+
+            filename_tc = f"himawari_true_color_{region_name}.webp"
+            path_tc = os.path.join(timestamp_dir, filename_tc)
             pil_img.save(path_tc, format="WEBP", quality=85)
 
             # 🔥 核心防護：另外複製一份並覆蓋成「固定檔名最新圖」
             latest_filename_tc = f"latest_{region_name}_color.webp"
             shutil.copy(path_tc, os.path.join(STATIC_DIR, latest_filename_tc))
+            
+            # 同步複製到前端靜態目錄
+            shutil.copy(path_tc, os.path.join(front_timestamp_dir, filename_tc))
             shutil.copy(path_tc, os.path.join(FRONTEND_STATIC_DIR, latest_filename_tc))
 
-            result = f"/static/images/{latest_filename_tc}"
+            result = f"/static/images/{timestamp_str}/{filename_tc}"
             del rgb_np, r_np, g_np, b_np, g_true, local_scn_tc, scn_tc
 
         elif mode == "ir":
@@ -182,16 +190,24 @@ def process_view(files, region_name, bbox, mode):
                 cw.add_grid(pil_img_ir, new_area_ir, grid_space, grid_space, outline='yellow', width=1, write_text=True, font=font, text_color='yellow')
 
             # 儲存帶時間戳記的檔案
-            filename_ir = f"himawari_ir_{region_name}_{timestamp_str}.webp"
-            path_ir = os.path.join(STATIC_DIR, filename_ir)
+            timestamp_dir = os.path.join(STATIC_DIR, timestamp_str)
+            front_timestamp_dir = os.path.join(FRONTEND_STATIC_DIR, timestamp_str)
+            os.makedirs(timestamp_dir, exist_ok=True)
+            os.makedirs(front_timestamp_dir, exist_ok=True)
+
+            filename_ir = f"himawari_ir_{region_name}.webp"
+            path_ir = os.path.join(timestamp_dir, filename_ir)
             pil_img_ir.save(path_ir, format="WEBP", quality=85)
 
             # 🔥 核心防護：另外複製一份並覆蓋成「固定檔名最新圖」
             latest_filename_ir = f"latest_{region_name}_ir.webp"
             shutil.copy(path_ir, os.path.join(STATIC_DIR, latest_filename_ir))
+            
+            # 同步複製到前端靜態目錄
+            shutil.copy(path_ir, os.path.join(front_timestamp_dir, filename_ir))
             shutil.copy(path_ir, os.path.join(FRONTEND_STATIC_DIR, latest_filename_ir))
 
-            result = f"/static/images/{latest_filename_ir}"
+            result = f"/static/images/{timestamp_str}/{filename_ir}"
             del ir_rgb_np, ir_rgb_da, ir, local_scn_ir, scn_ir
 
         gc.collect()
