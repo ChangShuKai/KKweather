@@ -57,7 +57,8 @@ let lastData = null;
 
 async function fetchStatus() {
     try {
-        const response = await fetch(STATUS_API_URL);
+        const timestamp = Date.now();
+        const response = await fetch(`${STATUS_API_URL}?t=${timestamp}`);
         if (!response.ok) throw new Error('Network error');
         
         const data = await response.json();
