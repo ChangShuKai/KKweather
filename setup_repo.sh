@@ -58,10 +58,29 @@ if [ ! -f "GSHHS_c_L1.shp" ]; then
 fi
 cd ../..
 
-# 3. Run the generator
+# 3. Check if we should pause Himawari for HD map generation
+CURRENT_HOUR=$(date +"%H")
+CURRENT_DOW=$(date +"%u") # 1=Mon, 7=Sun
+IS_MAP_WINDOW=0
+
+# Everyday 00:00 - 06:00
+if [ "$CURRENT_HOUR" -ge 0 ] && [ "$CURRENT_HOUR" -lt 6 ]; then
+  IS_MAP_WINDOW=1
+# Mon-Fri 09:00 - 15:00
+elif [ "$CURRENT_DOW" -le 5 ] && [ "$CURRENT_HOUR" -ge 9 ] && [ "$CURRENT_HOUR" -lt 15 ]; then
+  IS_MAP_WINDOW=1
+fi
+
+if [ "$IS_MAP_WINDOW" -eq 1 ]; then
+  echo "HD Map rendering window active. Skipping Himawari fetch to render Global HD Map."
+  python backend/map_generator.py || true
+  exit 0
+fi
+
+# 4. Run the generator
 python backend/main.py
 
-# 4. Commit and push
+# 5. Commit and push
 mkdir -p backend/static/images
 mkdir -p frontend/static/images
 git add --all backend/static/images/ || true

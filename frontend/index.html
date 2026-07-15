@@ -6,11 +6,24 @@
     <title>Himawari-9 衛星即時觀測系統</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar glass-panel">
+        <!-- Top Navigation -->
+        <nav class="top-nav glass-panel">
+            <div class="nav-brand">KKweather</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-target="himawari-view">即時衛星雲圖 (Himawari-9)</button>
+                <button class="nav-tab" data-target="map-view">全球超高清地圖 (Sentinel)</button>
+            </div>
+        </nav>
+        
+        <div class="content-wrapper">
+            <!-- Himawari View Container -->
+            <div id="himawari-view" class="view-section active">
+                <!-- Sidebar -->
+                <aside class="sidebar glass-panel">
             <div class="sidebar-header">
                 <h1>Himawari-9 🛰️</h1>
                 <p>Real-time Observation System</p>
@@ -116,8 +129,23 @@
                 <div class="log-line">Waiting for logs...</div>
             </div>
         </aside>
+            </div> <!-- End of himawari-view -->
+
+        <!-- Map View Container -->
+        <div id="map-view" class="view-section hidden" style="width: 100%; height: 100%; position: relative;">
+            <div id="leaflet-map" style="width: 100%; height: 100%; z-index: 1;"></div>
+            <div class="map-overlay glass-panel">
+                <h3>Sentinel Global Map</h3>
+                <p>Data provided by Copernicus Data Space</p>
+                <p class="map-subtext">Resolution: ~10m/pixel (Optical)</p>
+            </div>
+        </div>
+        
+        </div> <!-- End of content-wrapper -->
     </div>
     
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="script.js"></script>
+    <script src="global_map.js"></script>
 </body>
 </html>
