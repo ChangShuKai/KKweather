@@ -44,4 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     sentinelLayer.addTo(map);
+
+    // Dynamic Zoom Level Update
+    const zoomEl = document.getElementById('map-zoom-level');
+    if (zoomEl) {
+        zoomEl.textContent = map.getZoom();
+        map.on('zoomend', () => {
+            zoomEl.textContent = map.getZoom();
+        });
+    }
+
+    // Dynamic System Info Update
+    const sysInfoEl = document.getElementById('map-sys-info');
+    if (sysInfoEl) {
+        const fetchSysInfo = async () => {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                sysInfoEl.textContent = `CPU ${data.cpu.usage_percent}% | RAM ${data.memory.usage_percent}% | Dwn ${data.network.recv_kbps.toFixed(1)} KB/s`;
+            } catch (e) {
+                sysInfoEl.textContent = '連線異常';
+            }
+        };
+        fetchSysInfo();
+        setInterval(fetchSysInfo, 2000);
+    }
 });

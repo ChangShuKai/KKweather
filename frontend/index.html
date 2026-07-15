@@ -134,10 +134,15 @@
         <!-- Map View Container -->
         <div id="map-view" class="view-section hidden" style="width: 100%; height: 100%; position: relative;">
             <div id="leaflet-map" style="width: 100%; height: 100%; z-index: 1;"></div>
-            <div class="map-overlay glass-panel">
-                <h3>Sentinel Global Map</h3>
-                <p>Data provided by Copernicus Data Space</p>
-                <p class="map-subtext">Resolution: ~10m/pixel (Optical)</p>
+            <div class="map-overlay glass-panel" id="map-info-panel">
+                <h3>哨兵衛星全球地圖</h3>
+                <p>資料來源：哥白尼數據空間 (Copernicus)</p>
+                <p class="map-subtext">影像解析度：最高 10 公尺/像素</p>
+                <hr style="border-color: rgba(255,255,255,0.2); margin: 8px 0;">
+                <p class="map-subtext">拍攝時間：2020 全年無雲合成 (UTC / 台灣時間)</p>
+                <p class="map-subtext">系統狀態：<span id="map-sys-info">載入中...</span></p>
+                <p class="map-subtext">快取更新：即時動態快取 (Live Cache)</p>
+                <p class="map-subtext">當前 Zoom 等級：<span id="map-zoom-level">6</span></p>
             </div>
         </div>
         
@@ -146,6 +151,6 @@
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="script.js"></script>
-    <script src="global_map.js?v=4"></script>
+    <script src="global_map.js?v=5"></script>
 </body>
 </html>
