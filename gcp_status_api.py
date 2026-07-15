@@ -6,8 +6,40 @@ import psutil
 import os
 import threading
 import json
+import time
 
 app = FastAPI()
+
+# Global metrics cache
+system_metrics = {
+    "cpu_percent": 0.0,
+    "mem_percent": 0.0,
+    "mem_used": 0.0,
+    "mem_total": 0.0,
+    "mem_free": 0.0,
+}
+
+def update_metrics_loop():
+    # Initialize psutil CPU polling
+    psutil.cpu_percent(interval=None)
+    while True:
+        try:
+            # interval=1 blocks for 1 second, perfect for background thread
+            cpu = psutil.cpu_percent(interval=1.0)
+            mem = psutil.virtual_memory()
+            system_metrics["cpu_percent"] = cpu
+            system_metrics["mem_percent"] = mem.percent
+            system_metrics["mem_used"] = mem.used / (1024 * 1024)
+            system_metrics["mem_total"] = mem.total / (1024 * 1024)
+            system_metrics["mem_free"] = mem.available / (1024 * 1024)
+        except Exception:
+            pass
+        time.sleep(0.1)
+
+# Start background polling thread
+metrics_thread = threading.Thread(target=update_metrics_loop, daemon=True)
+metrics_thread.start()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,18 +102,17 @@ def get_logs():
 @app.get("/status")
 @app.get("/api/status")
 def get_status():
-    mem = psutil.virtual_memory()
     return {
         "server_name": "gcp-kkweather",
         "cpu": {
-            "usage_percent": psutil.cpu_percent(interval=0.1),
+            "usage_percent": system_metrics["cpu_percent"],
             "logical_cores": psutil.cpu_count(logical=True)
         },
         "memory": {
-            "usage_percent": mem.percent,
-            "used_mb": mem.used / (1024 * 1024),
-            "total_mb": mem.total / (1024 * 1024),
-            "free_mb": mem.available / (1024 * 1024)
+            "usage_percent": system_metrics["mem_percent"],
+            "used_mb": system_metrics["mem_used"],
+            "total_mb": system_metrics["mem_total"],
+            "free_mb": system_metrics["mem_free"]
         },
         "runtime": {
             "pid": os.getpid(),
