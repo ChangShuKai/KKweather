@@ -1,16 +1,20 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "http://34.80.61.138:8080/api/:path*"
+      "source": "/api/:match*",
+      "destination": "http://34.80.61.138:8080/api/:match*"
     },
     {
-      "source": "/static/:path*",
-      "destination": "http://34.80.61.138:8080/static/:path*"
+      "source": "/static/:match*",
+      "destination": "http://34.80.61.138:8080/static/:match*"
     },
     {
-      "source": "/:path*",
-      "destination": "/frontend/:path*"
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/:match*",
+      "destination": "/frontend/:match*"
     }
   ]
 }
