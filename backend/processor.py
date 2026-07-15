@@ -129,8 +129,11 @@ def process_view(files, region_name, bbox, mode):
             os.makedirs(front_timestamp_dir, exist_ok=True)
 
             filename_tc = f"himawari_true_color_{region_name}.webp"
+            filename_tc_png = f"himawari_true_color_{region_name}.png"
             path_tc = os.path.join(timestamp_dir, filename_tc)
+            path_tc_png = os.path.join(timestamp_dir, filename_tc_png)
             pil_img.save(path_tc, format="WEBP", quality=85)
+            pil_img.save(path_tc_png, format="PNG")
 
             # 🔥 核心防護：另外複製一份並覆蓋成「固定檔名最新圖」
             latest_filename_tc = f"latest_{region_name}_color.webp"
@@ -138,6 +141,7 @@ def process_view(files, region_name, bbox, mode):
             
             # 同步複製到前端靜態目錄
             shutil.copy(path_tc, os.path.join(front_timestamp_dir, filename_tc))
+            shutil.copy(path_tc_png, os.path.join(front_timestamp_dir, filename_tc_png))
             shutil.copy(path_tc, os.path.join(FRONTEND_STATIC_DIR, latest_filename_tc))
 
             result = f"/static/images/{timestamp_str}/{filename_tc}"
@@ -196,8 +200,11 @@ def process_view(files, region_name, bbox, mode):
             os.makedirs(front_timestamp_dir, exist_ok=True)
 
             filename_ir = f"himawari_ir_{region_name}.webp"
+            filename_ir_png = f"himawari_ir_{region_name}.png"
             path_ir = os.path.join(timestamp_dir, filename_ir)
+            path_ir_png = os.path.join(timestamp_dir, filename_ir_png)
             pil_img_ir.save(path_ir, format="WEBP", quality=85)
+            pil_img_ir.save(path_ir_png, format="PNG")
 
             # 🔥 核心防護：另外複製一份並覆蓋成「固定檔名最新圖」
             latest_filename_ir = f"latest_{region_name}_ir.webp"
@@ -205,6 +212,7 @@ def process_view(files, region_name, bbox, mode):
             
             # 同步複製到前端靜態目錄
             shutil.copy(path_ir, os.path.join(front_timestamp_dir, filename_ir))
+            shutil.copy(path_ir_png, os.path.join(front_timestamp_dir, filename_ir_png))
             shutil.copy(path_ir, os.path.join(FRONTEND_STATIC_DIR, latest_filename_ir))
 
             result = f"/static/images/{timestamp_str}/{filename_ir}"

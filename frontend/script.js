@@ -155,6 +155,15 @@ function updateDisplay() {
                    `/static/images/${historyMode}/himawari_${currentMode}_${currentRegion}.webp`;
                    
     if (historyMode === 'latest' && !currentData) return;
+    
+    const pngUrl = historyMode === 'latest' ? 
+                   currentData?.[currentMode]?.[currentRegion]?.replace('.webp', '.png') : 
+                   `/static/images/${historyMode}/himawari_${currentMode}_${currentRegion}.png`;
+                   
+    const downloadBtn = document.getElementById('download-png-btn');
+    if (downloadBtn && pngUrl) {
+        downloadBtn.href = pngUrl;
+    }
     const loaderContainer = document.getElementById('loader-container');
     const loadingText = document.getElementById('loading-text');
 
