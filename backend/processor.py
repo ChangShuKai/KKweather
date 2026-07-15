@@ -85,6 +85,7 @@ def process_view(files, region_name, bbox, mode):
             new_area = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img_day.width, pil_img_day.height, old_area.area_extent)
 
             pil_img = pil_img_day # 預設為全白天
+            ir_final = pil_img_ir
 
             if has_shapefiles:
                 cw = ContourWriterPIL(shapefile_dir)
@@ -94,17 +95,17 @@ def process_view(files, region_name, bbox, mode):
                 shapefile_path = os.path.join(shapefile_dir, f'GSHHS_{res_code}_L1.shp')
                 try:
                     cw.add_shapefile_shapes(land_mask, new_area, shapefile_path, fill=255)
+                    # 2. 將夜晚紅外線影像的「陸地區域」染成暗紅色 (雲的數值極亮不受影響)
+                    red_tint = Image.new("RGB", pil_img_ir.size, (100, 30, 30))
+                    ir_tinted = ImageChops.lighter(pil_img_ir, red_tint)
+                    ir_final = Image.composite(ir_tinted, pil_img_ir, land_mask)
                 except Exception:
                     pass
 
-                # 2. 將夜晚紅外線影像的「陸地區域」染成暗紅色 (雲的數值極亮不受影響)
-                red_tint = Image.new("RGB", pil_img_ir.size, (100, 30, 30))
-                ir_tinted = ImageChops.lighter(pil_img_ir, red_tint)
-                ir_final = Image.composite(ir_tinted, pil_img_ir, land_mask)
-                
-                # 3. 日夜無縫融合 (取白天與夜晚兩張圖的最亮值)
-                pil_img = ImageChops.lighter(pil_img_day, ir_final)
+            # 3. 日夜無縫融合 (取白天與夜晚兩張圖的最亮值)
+            pil_img = ImageChops.lighter(pil_img_day, ir_final)
 
+            if has_shapefiles:
                 try:
                     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12 if region_name == 'taiwan' else 14)
                 except Exception:
