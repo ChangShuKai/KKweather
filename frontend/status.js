@@ -98,6 +98,21 @@ function updateDashboard(data) {
     runtimePidEl.textContent = data.runtime.pid;
     runtimeThreadsEl.textContent = data.runtime.active_threads;
 
+    // Network Updates
+    if (data.network) {
+        const netRecvEl = document.getElementById('net-recv');
+        const netSentEl = document.getElementById('net-sent');
+        if (netRecvEl && netSentEl) {
+            const newRecv = data.network.recv_kbps || 0;
+            const newSent = data.network.sent_kbps || 0;
+            const oldRecv = lastData && lastData.network ? lastData.network.recv_kbps : 0;
+            const oldSent = lastData && lastData.network ? lastData.network.sent_kbps : 0;
+            
+            animateValue(netRecvEl, oldRecv, newRecv, 800);
+            animateValue(netSentEl, oldSent, newSent, 800);
+        }
+    }
+
     lastData = data;
 }
 

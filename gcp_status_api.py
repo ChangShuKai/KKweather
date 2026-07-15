@@ -17,24 +17,36 @@ system_metrics = {
     "mem_used": 0.0,
     "mem_total": 0.0,
     "mem_free": 0.0,
+    "net_recv_kbps": 0.0,
+    "net_sent_kbps": 0.0,
 }
 
 def update_metrics_loop():
     # Initialize psutil CPU polling
     psutil.cpu_percent(interval=None)
+    last_net = psutil.net_io_counters()
+    
     while True:
         try:
             # interval=1 blocks for 1 second, perfect for background thread
             cpu = psutil.cpu_percent(interval=1.0)
             mem = psutil.virtual_memory()
+            
+            # Network speed calculation
+            current_net = psutil.net_io_counters()
+            bytes_recv = current_net.bytes_recv - last_net.bytes_recv
+            bytes_sent = current_net.bytes_sent - last_net.bytes_sent
+            last_net = current_net
+            
             system_metrics["cpu_percent"] = cpu
             system_metrics["mem_percent"] = mem.percent
             system_metrics["mem_used"] = mem.used / (1024 * 1024)
             system_metrics["mem_total"] = mem.total / (1024 * 1024)
             system_metrics["mem_free"] = mem.available / (1024 * 1024)
+            system_metrics["net_recv_kbps"] = (bytes_recv / 1024) # KB/s
+            system_metrics["net_sent_kbps"] = (bytes_sent / 1024) # KB/s
         except Exception:
             pass
-        time.sleep(0.1)
 
 # Start background polling thread
 metrics_thread = threading.Thread(target=update_metrics_loop, daemon=True)
@@ -113,6 +125,10 @@ def get_status():
             "used_mb": system_metrics["mem_used"],
             "total_mb": system_metrics["mem_total"],
             "free_mb": system_metrics["mem_free"]
+        },
+        "network": {
+            "recv_kbps": system_metrics["net_recv_kbps"],
+            "sent_kbps": system_metrics["net_sent_kbps"]
         },
         "runtime": {
             "pid": os.getpid(),
