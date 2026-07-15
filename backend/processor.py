@@ -68,7 +68,7 @@ def process_view(files, region_name, bbox, mode):
             scn_tc.load(['true_color', 'B14'])
 
             local_scn_tc = scn_tc.crop(ll_bbox=bbox) if bbox else scn_tc
-            local_scn_tc = local_scn_tc.resample(resampler='native')
+            local_scn_tc = local_scn_tc.resample(resampler='nearest')
             stride = 4 if region_name == "global" else (2 if region_name == "asia" else 1)
             
             tc_data = local_scn_tc['true_color'][:, ::stride, ::stride].compute()
@@ -84,26 +84,31 @@ def process_view(files, region_name, bbox, mode):
             old_area = tc_data.attrs['area']
             new_area = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img_day.width, pil_img_day.height, old_area.area_extent)
 
-            pil_img = pil_img_day # 預設為全白天
-            ir_final = pil_img_ir
+            # 1. 產生夜晚遮罩 (根據真色彩的亮度)
+            # 亮度極低(夜晚)時使用紅外線，亮度高(白天)時使用真色彩，避免 IR 噪點污染白天陸地
+            day_luma = pil_img_day.convert("L")
+            night_mask = day_luma.point(lambda p: 255 if p < 5 else (int(255 - (p - 5) * 17) if p <= 20 else 0))
 
+            ir_final = pil_img_ir
+            
             if has_shapefiles:
                 cw = ContourWriterPIL(shapefile_dir)
                 
-                # 1. 製作陸地遮罩
+                # 2. 製作陸地遮罩，僅在夜晚區域把陸地染紅
                 land_mask = Image.new('L', pil_img_day.size, 0)
                 shapefile_path = os.path.join(shapefile_dir, f'GSHHS_{res_code}_L1.shp')
                 try:
                     cw.add_shapefile_shapes(land_mask, new_area, shapefile_path, fill=255)
-                    # 2. 將夜晚紅外線影像的「陸地區域」染成暗紅色 (雲的數值極亮不受影響)
+                    # 只在夜晚的陸地染成暗紅色
+                    night_land_mask = ImageChops.darker(land_mask, night_mask)
                     red_tint = Image.new("RGB", pil_img_ir.size, (100, 30, 30))
                     ir_tinted = ImageChops.lighter(pil_img_ir, red_tint)
-                    ir_final = Image.composite(ir_tinted, pil_img_ir, land_mask)
+                    ir_final = Image.composite(ir_tinted, pil_img_ir, night_land_mask)
                 except Exception:
                     pass
 
-            # 3. 日夜無縫融合 (取白天與夜晚兩張圖的最亮值)
-            pil_img = ImageChops.lighter(pil_img_day, ir_final)
+            # 3. 日夜無縫融合 (根據亮度遮罩完美融合)
+            pil_img = Image.composite(ir_final, pil_img_day, night_mask)
 
             if has_shapefiles:
                 try:
