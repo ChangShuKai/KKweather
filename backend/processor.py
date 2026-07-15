@@ -4,8 +4,10 @@ from satpy import Scene
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
+from PIL import Image, ImageChops, ImageFont
 import shutil
+from pyresample.geometry import AreaDefinition
+from pycoast import ContourWriterPIL
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static', 'images')
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -66,6 +68,7 @@ def process_view(files, region_name, bbox, mode):
             scn_tc.load(['true_color', 'B14'])
 
             local_scn_tc = scn_tc.crop(ll_bbox=bbox) if bbox else scn_tc
+            local_scn_tc = local_scn_tc.resample(resampler='native')
             stride = 4 if region_name == "global" else (2 if region_name == "asia" else 1)
             
             tc_data = local_scn_tc['true_color'][:, ::stride, ::stride].compute()
@@ -78,16 +81,12 @@ def process_view(files, region_name, bbox, mode):
             img_ir = get_enhanced_image(ir_data)
             pil_img_ir = img_ir.pil_image().convert("RGB")
 
-            from pyresample.geometry import AreaDefinition
             old_area = tc_data.attrs['area']
             new_area = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img_day.width, pil_img_day.height, old_area.area_extent)
 
-            from PIL import Image, ImageChops
             pil_img = pil_img_day # 預設為全白天
 
             if has_shapefiles:
-                from pycoast import ContourWriterPIL
-                from PIL import ImageFont
                 cw = ContourWriterPIL(shapefile_dir)
                 
                 # 1. 製作陸地遮罩
@@ -141,7 +140,7 @@ def process_view(files, region_name, bbox, mode):
             shutil.copy(path_tc, os.path.join(FRONTEND_STATIC_DIR, latest_filename_tc))
 
             result = f"/static/images/{timestamp_str}/{filename_tc}"
-            del rgb_np, r_np, g_np, b_np, g_true, local_scn_tc, scn_tc
+            del local_scn_tc, scn_tc
 
         elif mode == "ir":
             print(f"[{region_name}] 正在載入紅外線波段...")
@@ -172,8 +171,6 @@ def process_view(files, region_name, bbox, mode):
             new_area_ir = AreaDefinition(old_area.area_id, old_area.description, old_area.proj_id, old_area.crs, pil_img_ir.width, pil_img_ir.height, old_area.area_extent)
 
             if has_shapefiles:
-                from pycoast import ContourWriterPIL
-                from PIL import ImageFont
                 cw = ContourWriterPIL(shapefile_dir)
                 try:
                     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12 if region_name == 'taiwan' else 14)
