@@ -17,7 +17,7 @@ export PYTHONPATH="$HOME/KKweather"
 source "$HOME/KKweather/venv/bin/activate"
 
 # Run it in nohup so it doesn't stop when SSH disconnects
-nohup python "$HOME/KKweather/backend/map_generator.py" --unlimited > "$HOME/KKweather/hd_map_render.log" 2>&1 &
+nohup python "$HOME/KKweather/backend/map_generator.py" --unlimited > "/home/kai1010210/satellite.log" 2>&1 &
 
 echo ""
 echo "✅ Render triggered successfully!"
