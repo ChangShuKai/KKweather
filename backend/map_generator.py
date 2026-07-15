@@ -3,15 +3,16 @@ import time
 import requests
 import json
 import argparse
+import concurrent.futures
 
 BACKEND_DIR = os.path.dirname(__file__)
-# Save directly to backend/static so FastAPI can serve it live!
 MAP_LIVE_DIR = os.path.join(BACKEND_DIR, 'static', 'hd_map')
 STATE_FILE = os.path.join(BACKEND_DIR, 'static', 'map_state.json')
 
-TARGET_ZOOM = 8
-# Limit to 9 minutes (540 seconds) for cron, but bypassed if --unlimited
+TARGET_ZOOM = 14
 TIME_LIMIT = 540 
+MAX_WORKERS = 20
+BATCH_SIZE = 100
 
 def download_tile(z, x, y):
     url = f"https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg"
@@ -25,9 +26,45 @@ def download_tile(z, x, y):
     try:
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
-            with open(tile_path, 'wb') as f:
-                f.write(resp.content)
-            return True
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                import io
+                
+                # Load image from bytes
+                img = Image.open(io.BytesIO(resp.content))
+                draw = ImageDraw.Draw(img)
+                
+                text = "KKWeather"
+                
+                # Try to load a nice font, fallback to default if not available
+                try:
+                    font = ImageFont.truetype("arial.ttf", 12)
+                except IOError:
+                    font = ImageFont.load_default()
+                    
+                # Calculate text size and position (bottom right)
+                text_bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
+                
+                width, height = img.size
+                x_pos = width - text_width - 5
+                y_pos = height - text_height - 5
+                
+                # Draw semi-transparent background for text visibility
+                draw.rectangle([x_pos - 2, y_pos - 2, x_pos + text_width + 2, y_pos + text_height + 2], fill=(0, 0, 0, 128))
+                # Draw text
+                draw.text((x_pos, y_pos), text, font=font, fill=(255, 255, 255, 200))
+                
+                # Save the watermarked image
+                img.save(tile_path, "JPEG", quality=85)
+                return True
+            except Exception as e:
+                # Fallback to saving raw bytes if image processing fails
+                print(f"Watermark failed: {e}")
+                with open(tile_path, 'wb') as f:
+                    f.write(resp.content)
+                return True
     except Exception as e:
         pass
     return False
@@ -45,10 +82,49 @@ def save_state(z, x, y):
     with open(STATE_FILE, 'w') as f:
         json.dump({"z": z, "x": x, "y": y}, f)
 
+import math
+
+def get_tile_coord(lat, lon, zoom):
+    x = int((lon + 180.0) / 360.0 * (2.0 ** zoom))
+    sec = 1.0 / math.cos(math.radians(lat))
+    y = int((1.0 - math.log(math.tan(math.radians(lat)) + sec) / math.pi) / 2.0 * (2.0 ** zoom))
+    return x, y
+
+def coord_generator(start_z, start_x, start_y):
+    # Taiwan Bounding Box (Lat: 21.5 to 25.5, Lon: 119.5 to 122.5)
+    tw_lat_min, tw_lat_max = 21.5, 25.5
+    tw_lon_min, tw_lon_max = 119.5, 122.5
+
+    for z in range(start_z, TARGET_ZOOM + 1):
+        if z <= 6:
+            # Zoom 0-6: Whole World (Safe, very few tiles)
+            min_x, max_x = 0, 2**z - 1
+            min_y, max_y = 0, 2**z - 1
+        else:
+            # Zoom 7-14: ONLY TAIWAN (Prevents 7TB explosion!)
+            min_x, max_y = get_tile_coord(tw_lat_min, tw_lon_min, z) # Bottom Left
+            max_x, min_y = get_tile_coord(tw_lat_max, tw_lon_max, z) # Top Right
+            
+            # Ensure coordinates are safely within bounds just in case of rounding
+            min_x = max(0, min_x - 1)
+            max_x = min(2**z - 1, max_x + 1)
+            min_y = max(0, min_y - 1)
+            max_y = min(2**z - 1, max_y + 1)
+
+        x_range_start = max(start_x, min_x) if z == start_z else min_x
+        for x in range(x_range_start, max_x + 1):
+            y_range_start = max(start_y, min_y) if (z == start_z and x == start_x) else min_y
+            for y in range(y_range_start, max_y + 1):
+                yield (z, x, y)
+            start_y = 0 # reset for next x
+        start_x = 0 # reset for next z
+
 def generate_global_map_incremental(unlimited=False):
     print(f"Starting Incremental Global HD Map Render (Target Zoom: {TARGET_ZOOM})...")
     if unlimited:
-        print(">>> UNLIMITED MODE ACTIVATED: Will run until completely finished! <<<")
+        print(f">>> UNLIMITED MODE ACTIVATED: {MAX_WORKERS} Threads <<<")
+    else:
+        print(f">>> CRON MODE: {MAX_WORKERS} Threads <<<")
         
     os.makedirs(MAP_LIVE_DIR, exist_ok=True)
     
@@ -59,30 +135,41 @@ def generate_global_map_incremental(unlimited=False):
 
     print(f"Resuming puzzle from piece Z:{start_z} X:{start_x} Y:{start_y}")
 
-    for z in range(start_z, TARGET_ZOOM + 1):
-        max_coord = 2**z
-        x_range_start = start_x if z == start_z else 0
-        
-        for x in range(x_range_start, max_coord):
-            y_range_start = start_y if (z == start_z and x == start_x) else 0
-            
-            for y in range(y_range_start, max_coord):
-                if download_tile(z, x, y):
-                    downloaded_this_session += 1
-                
-                # Check time limit every tile (unless unlimited)
-                if not unlimited and (time.time() - start_time >= TIME_LIMIT):
-                    save_state(z, x, y + 1)
-                    print(f"Time limit reached ({TIME_LIMIT}s). Cached {downloaded_this_session} tiles. Pausing until next cron.")
-                    return
-
-    # If loops finish, the entire map is complete!
-    print(f"BINGO! Global HD Map up to Zoom {TARGET_ZOOM} completely rendered! ({downloaded_this_session} tiles downloaded)")
+    coord_gen = coord_generator(start_z, start_x, start_y)
     
-    # Remove state file so next time it starts fresh
-    if os.path.exists(STATE_FILE):
-        os.remove(STATE_FILE)
-    print("Live Puzzle Map is fully complete!")
+    is_finished = False
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        while True:
+            batch = []
+            for _ in range(BATCH_SIZE):
+                try:
+                    batch.append(next(coord_gen))
+                except StopIteration:
+                    is_finished = True
+                    break
+                    
+            if not batch:
+                break
+                
+            # Submit batch concurrently
+            futures = {executor.submit(download_tile, z, x, y): (z, x, y) for (z, x, y) in batch}
+            for future in concurrent.futures.as_completed(futures):
+                if future.result():
+                    downloaded_this_session += 1
+                    
+            # Safe checkpoint at end of batch
+            last_z, last_x, last_y = batch[-1]
+            save_state(last_z, last_x, last_y + 1)
+            
+            if not unlimited and (time.time() - start_time >= TIME_LIMIT):
+                print(f"Time limit reached ({TIME_LIMIT}s). Cached {downloaded_this_session} tiles. Pausing until next cron.")
+                return
+
+    if is_finished:
+        print(f"BINGO! Global HD Map up to Zoom {TARGET_ZOOM} completely rendered! ({downloaded_this_session} tiles downloaded)")
+        if os.path.exists(STATE_FILE):
+            os.remove(STATE_FILE)
+        print("Live Puzzle Map is fully complete!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
