@@ -160,6 +160,13 @@ function updateDisplay() {
                    currentData?.[currentMode]?.[currentRegion]?.replace('.webp', '.png') : 
                    `/static/images/${historyMode}/himawari_${currentMode}_${currentRegion}.png`;
                    
+    // 動態調整圖片填滿模式：全景圖需要完整顯示 (contain)，區域圖則填滿畫面 (cover)
+    if (currentRegion === 'global') {
+        imgElement.style.objectFit = 'contain';
+    } else {
+        imgElement.style.objectFit = 'cover';
+    }
+                   
     const downloadBtn = document.getElementById('download-png-btn');
     if (downloadBtn && pngUrl) {
         downloadBtn.href = pngUrl;
