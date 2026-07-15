@@ -68,48 +68,58 @@ def job_fetch_and_process_all():
 
         print(f"[Progress] 10% - Latest data found on AWS: {prefix}")
 
-        # ---------------------------------------------------------
-        # PIECE 1: TAIWAN (動態匹配包含 _S03 的所有最新段落)
-        # ---------------------------------------------------------
-        print("[Progress] 15% - Downloading Segment 3 for Taiwan (Dynamic)...")
-        tw_files = fetch_segments(prefix, ['_S03'])
-        if not tw_files: raise Exception("無法下載到台灣區域最新的衛星 DAT 檔案！")
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            # ---------------------------------------------------------
+            # PIECE 1: TAIWAN 
+            # ---------------------------------------------------------
+            print("[Progress] 15% - Downloading Segment 3 for Taiwan (Dynamic)...")
+            tw_files = fetch_segments(prefix, ['_S03'])
+            if not tw_files: raise Exception("無法下載到台灣區域最新的衛星 DAT 檔案！")
 
-        print(f"[Progress] 20% - Processing Taiwan True Color ({len(tw_files)} files)...")
-        tw_tc = process_taiwan_view(tw_files, "true_color")
-        update_latest_json("taiwan", "true_color", tw_tc)
+            # 🔥 優化：在處理台灣影像的同時，背景開始下載亞洲區域檔案
+            print("[Progress] 20% - [Background] Start downloading Segments 1-4 for Asia...")
+            future_asia_files = executor.submit(fetch_segments, prefix, ['_S01', '_S02', '_S03', '_S04'])
 
-        print("[Progress] 35% - Processing Taiwan Infrared...")
-        tw_ir = process_taiwan_view(tw_files, "ir")
-        update_latest_json("taiwan", "ir", tw_ir)
+            print(f"[Progress] 25% - Processing Taiwan True Color ({len(tw_files)} files)...")
+            tw_tc = process_taiwan_view(tw_files, "true_color")
+            update_latest_json("taiwan", "true_color", tw_tc)
 
-        # ---------------------------------------------------------
-        # PIECE 2: ASIA (動態匹配 1, 2, 3, 4 段落)
-        # ---------------------------------------------------------
-        print("[Progress] 45% - Downloading Segments 1, 2, 4 for Asia (Dynamic)...")
-        asia_files = fetch_segments(prefix, ['_S01', '_S02', '_S03', '_S04'])
+            print("[Progress] 35% - Processing Taiwan Infrared...")
+            tw_ir = process_taiwan_view(tw_files, "ir")
+            update_latest_json("taiwan", "ir", tw_ir)
 
-        print(f"[Progress] 50% - Processing Asia True Color ({len(asia_files)} files)...")
-        asia_tc = process_asia_view(asia_files, "true_color")
-        update_latest_json("asia", "true_color", asia_tc)
+            # ---------------------------------------------------------
+            # PIECE 2: ASIA 
+            # ---------------------------------------------------------
+            print("[Progress] 45% - Waiting for Asia downloads to complete...")
+            asia_files = future_asia_files.result()
 
-        print("[Progress] 65% - Processing Asia Infrared...")
-        asia_ir = process_asia_view(asia_files, "ir")
-        update_latest_json("asia", "ir", asia_ir)
+            # 🔥 優化：在處理亞洲影像的同時，背景開始下載全球區域檔案
+            print("[Progress] 50% - [Background] Start downloading remaining segments for Global...")
+            future_global_files = executor.submit(fetch_segments, prefix, None)
 
-        # ---------------------------------------------------------
-        # PIECE 3: GLOBAL (All Segments)
-        # ---------------------------------------------------------
-        print("[Progress] 75% - Downloading remaining segments for Global...")
-        global_files = fetch_segments(prefix, None)
+            print(f"[Progress] 55% - Processing Asia True Color ({len(asia_files)} files)...")
+            asia_tc = process_asia_view(asia_files, "true_color")
+            update_latest_json("asia", "true_color", asia_tc)
 
-        print(f"[Progress] 80% - Processing Global True Color ({len(global_files)} files)...")
-        global_tc = process_global_view(global_files, "true_color")
-        update_latest_json("global", "true_color", global_tc)
+            print("[Progress] 65% - Processing Asia Infrared...")
+            asia_ir = process_asia_view(asia_files, "ir")
+            update_latest_json("asia", "ir", asia_ir)
 
-        print("[Progress] 90% - Processing Global Infrared...")
-        global_ir = process_global_view(global_files, "ir")
-        update_latest_json("global", "ir", global_ir)
+            # ---------------------------------------------------------
+            # PIECE 3: GLOBAL 
+            # ---------------------------------------------------------
+            print("[Progress] 75% - Waiting for Global downloads to complete...")
+            global_files = future_global_files.result()
+
+            print(f"[Progress] 80% - Processing Global True Color ({len(global_files)} files)...")
+            global_tc = process_global_view(global_files, "true_color")
+            update_latest_json("global", "true_color", global_tc)
+
+            print("[Progress] 90% - Processing Global Infrared...")
+            global_ir = process_global_view(global_files, "ir")
+            update_latest_json("global", "ir", global_ir)
 
         print("[Progress] 95% - Cleaning up old image folders (keeping latest 12 hours)...")
         cleanup_old_images()
