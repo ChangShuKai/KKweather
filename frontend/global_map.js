@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.globalLeafletMap = map;
 
     // We use the LOCAL Cache!
-    // This allows the "Live Puzzle Rendering" effect where tiles appear as they are downloaded.
     const sentinelLayer = L.tileLayer('/static/hd_map/{z}/{x}/{y}.jpg', {
         attribution: 'Local Sentinel-2 Cloudless Cache',
         maxZoom: 14,
@@ -45,11 +44,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     sentinelLayer.addTo(map);
-
-    // Optional labels overlay
-    const labelsLayer = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/overlay_base_bright_3857/default/g/{z}/{y}/{x}.png', {
-        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 14
-    });
-    labelsLayer.addTo(map);
 });

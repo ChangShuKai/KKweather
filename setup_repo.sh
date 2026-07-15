@@ -72,9 +72,8 @@ elif [ "$CURRENT_DOW" -le 5 ] && [ "$CURRENT_HOUR" -ge 9 ] && [ "$CURRENT_HOUR" 
 fi
 
 if [ "$IS_MAP_WINDOW" -eq 1 ]; then
-  echo "HD Map rendering window active. Skipping Himawari fetch to render Global HD Map."
-  python backend/map_generator.py || true
-  exit 0
+  echo "HD Map rendering window active. Starting map generator in background..."
+  nohup python backend/map_generator.py > /dev/null 2>&1 &
 fi
 
 # 4. Run the generator
