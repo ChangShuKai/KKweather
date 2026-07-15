@@ -271,3 +271,57 @@ async function fetchLogs() {
         console.error('Error fetching logs:', error);
     }
 }
+
+// Countdown Timer Logic
+let nextRunTime = null;
+
+function calculateNextRunTime() {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    // Calculate the next 10-minute interval (e.g. 0, 10, 20...)
+    // Add 0.1 to avoid instantly triggering if we are exactly on the minute
+    const next10Min = Math.ceil((minutes + 0.1) / 10) * 10; 
+    
+    nextRunTime = new Date(now);
+    nextRunTime.setMinutes(next10Min);
+    nextRunTime.setSeconds(0);
+    nextRunTime.setMilliseconds(0);
+}
+
+function updateCountdown() {
+    const timerElement = document.getElementById('countdown-timer');
+    if (!timerElement) return;
+
+    if (!nextRunTime) {
+        calculateNextRunTime();
+    }
+    
+    // If backend is processing, show that instead of countdown
+    if (document.getElementById('loader-container') && document.getElementById('loader-container').style.display === 'flex') {
+        timerElement.innerText = '🚀 繪製下載中...';
+        timerElement.style.color = '#10b981'; // Green
+        return;
+    }
+
+    const now = new Date();
+    const diff = nextRunTime - now;
+    
+    if (diff <= 0) {
+        timerElement.innerText = '準備更新...';
+        timerElement.style.color = 'var(--accent-hover)';
+        // Re-calculate after a few seconds in case cron is slightly delayed
+        if (diff < -5000) {
+            calculateNextRunTime();
+        }
+        return;
+    }
+    
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    timerElement.innerText = `${mins}分 ${secs.toString().padStart(2, '0')}秒`;
+    timerElement.style.color = 'var(--accent-color)';
+}
+
+// Start countdown
+calculateNextRunTime();
+setInterval(updateCountdown, 1000);
