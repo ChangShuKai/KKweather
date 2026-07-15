@@ -35,10 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.globalLeafletMap = map;
 
     // We use the LOCAL Cache!
-    const sentinelLayer = L.tileLayer('/static/hd_map/{z}/{x}/{y}.jpg', {
+    const sentinelLayer = L.tileLayer('/api/tile/{z}/{x}/{y}', {
         attribution: 'Local Sentinel-2 Cloudless Cache',
         maxZoom: 14,
-        maxNativeZoom: 14,
         tileSize: 256,
         // If the tile hasn't been downloaded yet (puzzle piece missing), show a transparent blank tile
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'

@@ -90,34 +90,36 @@ def get_tile_coord(lat, lon, zoom):
     y = int((1.0 - math.log(math.tan(math.radians(lat)) + sec) / math.pi) / 2.0 * (2.0 ** zoom))
     return x, y
 
-def coord_generator(start_z, start_x, start_y):
+def coord_generator():
     # Taiwan Bounding Box (Lat: 21.5 to 25.5, Lon: 119.5 to 122.5)
     tw_lat_min, tw_lat_max = 21.5, 25.5
     tw_lon_min, tw_lon_max = 119.5, 122.5
 
-    for z in range(start_z, TARGET_ZOOM + 1):
-        if z <= 6:
-            # Zoom 0-6: Whole World (Safe, very few tiles)
-            min_x, max_x = 0, 2**z - 1
-            min_y, max_y = 0, 2**z - 1
-        else:
-            # Zoom 7-14: ONLY TAIWAN (Prevents 7TB explosion!)
-            min_x, max_y = get_tile_coord(tw_lat_min, tw_lon_min, z) # Bottom Left
-            max_x, min_y = get_tile_coord(tw_lat_max, tw_lon_max, z) # Top Right
-            
-            # Ensure coordinates are safely within bounds just in case of rounding
-            min_x = max(0, min_x - 1)
-            max_x = min(2**z - 1, max_x + 1)
-            min_y = max(0, min_y - 1)
-            max_y = min(2**z - 1, max_y + 1)
+    # PRIORITY 1: Taiwan Zoom 7 to 14
+    for z in range(7, TARGET_ZOOM + 1):
+        min_x, max_y = get_tile_coord(tw_lat_min, tw_lon_min, z) # Bottom Left
+        max_x, min_y = get_tile_coord(tw_lat_max, tw_lon_max, z) # Top Right
+        
+        min_x = max(0, min_x - 1)
+        max_x = min(2**z - 1, max_x + 1)
+        min_y = max(0, min_y - 1)
+        max_y = min(2**z - 1, max_y + 1)
 
-        x_range_start = max(start_x, min_x) if z == start_z else min_x
-        for x in range(x_range_start, max_x + 1):
-            y_range_start = max(start_y, min_y) if (z == start_z and x == start_x) else min_y
-            for y in range(y_range_start, max_y + 1):
-                yield (z, x, y)
-            start_y = 0 # reset for next x
-        start_x = 0 # reset for next z
+        for x in range(min_x, max_x + 1):
+            for y in range(min_y, max_y + 1):
+                path = os.path.join(MAP_LIVE_DIR, str(z), str(x), f"{y}.jpg")
+                if not os.path.exists(path):
+                    yield (z, x, y)
+
+    # PRIORITY 2: World Zoom 0 to 6
+    for z in range(0, 7):
+        min_x, max_x = 0, 2**z - 1
+        min_y, max_y = 0, 2**z - 1
+        for x in range(min_x, max_x + 1):
+            for y in range(min_y, max_y + 1):
+                path = os.path.join(MAP_LIVE_DIR, str(z), str(x), f"{y}.jpg")
+                if not os.path.exists(path):
+                    yield (z, x, y)
 
 def generate_global_map_incremental(unlimited=False):
     print(f"Starting Incremental Global HD Map Render (Target Zoom: {TARGET_ZOOM})...")
@@ -135,7 +137,7 @@ def generate_global_map_incremental(unlimited=False):
 
     print(f"Resuming puzzle from piece Z:{start_z} X:{start_x} Y:{start_y}")
 
-    coord_gen = coord_generator(start_z, start_x, start_y)
+    coord_gen = coord_generator()
     
     is_finished = False
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
