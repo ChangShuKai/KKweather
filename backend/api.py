@@ -1,9 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import json
+import requests
 
 app = FastAPI()
 
@@ -16,75 +16,45 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LATEST_JSON = os.path.join(BASE_DIR, "latest.json")
-
-# Serve frontend files
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 frontend_dir = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
-app.mount("/frontend", StaticFiles(directory=frontend_dir), name="frontend")
+GCP_URL = "http://34.80.61.138:8080"
 
+# 1. Proxy static images from GCP
+@app.get("/static/{filepath:path}")
+def proxy_static(filepath: str):
+    url = f"{GCP_URL}/static/{filepath}"
+    try:
+        resp = requests.get(url, stream=True, timeout=10)
+        return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=resp.headers.get('content-type', 'image/webp'))
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"message": "Failed to proxy image from GCP"})
+
+# 2. Proxy API endpoints
+@app.get("/api/{endpoint:path}")
+def proxy_api(endpoint: str):
+    url = f"{GCP_URL}/api/{endpoint}"
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            return resp.json()
+        return JSONResponse(status_code=resp.status_code, content=resp.json())
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"status": "processing", "message": "等待連線至伺服器..."})
+
+# 3. Proxy /logs and /status
+@app.get("/logs")
+def proxy_logs():
+    return proxy_api("logs")
+
+@app.get("/status")
+def proxy_status():
+    return proxy_api("status")
+
+# 4. Serve Frontend
 @app.get("/")
 def read_root():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
 
-@app.get("/api/latest")
-def get_latest():
-    import requests
-    github_url = "https://raw.githubusercontent.com/ChangShuKai/KKweather/main/backend/latest.json"
-    try:
-        headers = {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
-        resp = requests.get(github_url, headers=headers, timeout=5)
-        if resp.status_code == 200:
-            data = resp.json()
-            # 將本地靜態路徑轉換為 GitHub Raw 直接讀取連結
-            for mode in ["true_color", "ir"]:
-                if mode in data:
-                    for region in ["global", "asia", "taiwan"]:
-                        path = data[mode].get(region)
-                        if path and path.startswith("/static/"):
-                            filename = path.split("/")[-1]
-                            data[mode][region] = f"https://raw.githubusercontent.com/ChangShuKai/KKweather/main/backend/static/images/{filename}"
-            return data
-    except Exception:
-        pass
-
-    if os.path.exists(LATEST_JSON):
-        with open(LATEST_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"status": "processing", "message": "等待 GitHub Actions 即時運算中..."}
-
-@app.get("/api/logs")
-def get_logs():
-    import requests
-    try:
-        # Proxy to GCP server for logs
-        resp = requests.get("http://34.80.61.138:8080/logs", timeout=2)
-        if resp.status_code == 200:
-            return resp.json()
-    except Exception:
-        pass
-    return {"logs": ["GCP Server 暫時無法連線或尚未產生日誌"]}
-
-@app.get("/api/status")
-def get_status():
-    import requests
-    try:
-        # Proxy to GCP server
-        resp = requests.get("http://34.80.61.138:8080/status", timeout=2)
-        if resp.status_code == 200:
-            return resp.json()
-    except Exception as e:
-        pass
-    
-    # Fallback response if GCP is unreachable
-    return {
-        "server_name": "GCP Server (Offline)",
-        "cpu": {"usage_percent": 0, "logical_cores": "-"},
-        "memory": {"usage_percent": 0, "used_mb": 0, "total_mb": 0, "free_mb": 0},
-        "runtime": {"pid": "-", "active_threads": "-"}
-    }
-
-# Serve any other frontend HTML files (like status.html)
 @app.get("/{filename}.html")
 def serve_html(filename: str):
     file_path = os.path.join(frontend_dir, f"{filename}.html")
