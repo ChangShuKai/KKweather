@@ -1,11 +1,13 @@
 const API_URL = '/api/latest';
 const LOGS_URL = '/api/logs';
+const HISTORY_URL = '/api/history';
 const REFRESH_INTERVAL = 60000; // Check for new data every 1 minute
 const LOG_INTERVAL = 2000; // Check logs every 2 seconds
 
 let currentMode = 'true_color'; // 'true_color' or 'ir'
 let currentRegion = 'taiwan'; // 'global', 'asia', or 'taiwan'
 let currentData = null;
+let historyMode = 'latest';
 
 const imgElement = document.getElementById('satellite-img');
 const loader = document.getElementById('loader');
@@ -14,15 +16,18 @@ const modeButtons = document.querySelectorAll('.mode-btn');
 const regionButtons = document.querySelectorAll('.region-btn');
 const statusIndicator = document.querySelector('.status-indicator');
 const systemStatus = document.getElementById('system-status');
+const historySelector = document.getElementById('history-selector');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     fetchLatestData();
     fetchLogs();
+    fetchHistory();
     // Start polling
     setInterval(fetchLatestData, REFRESH_INTERVAL);
     setInterval(fetchLogs, LOG_INTERVAL);
+    setInterval(fetchHistory, REFRESH_INTERVAL);
 });
 
 function setupEventListeners() {
@@ -45,6 +50,58 @@ function setupEventListeners() {
             updateDisplay();
         });
     });
+
+    if(historySelector) {
+        historySelector.addEventListener('change', (e) => {
+            historyMode = e.target.value;
+            if(historyMode !== 'latest') {
+                const ts = historyMode;
+                const year = ts.substring(0,4);
+                const month = ts.substring(4,6);
+                const day = ts.substring(6,8);
+                const hour = ts.substring(9,11);
+                const min = ts.substring(11,13);
+                timestampDisplay.textContent = `${year}-${month}-${day} ${hour}:${min} (UTC) [歷史]`;
+            } else if (currentData) {
+                updateTimestampDisplay(currentData.timestamp);
+            }
+            updateDisplay();
+        });
+    }
+}
+
+function updateTimestampDisplay(raw) {
+    if(!raw) return;
+    const year = raw.substring(0,4);
+    const month = raw.substring(4,6);
+    const day = raw.substring(6,8);
+    const hour = raw.substring(9,11);
+    const min = raw.substring(11,13);
+    timestampDisplay.textContent = `${year}-${month}-${day} ${hour}:${min} (UTC)`;
+}
+
+async function fetchHistory() {
+    try {
+        const response = await fetch(`${HISTORY_URL}?t=${Date.now()}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.history && historySelector) {
+            const currentValue = historySelector.value;
+            let optionsHTML = '<option value="latest">即時最新 (Live)</option>';
+            data.history.forEach(ts => {
+                const year = ts.substring(0,4);
+                const month = ts.substring(4,6);
+                const day = ts.substring(6,8);
+                const hour = ts.substring(9,11);
+                const min = ts.substring(11,13);
+                optionsHTML += `<option value="${ts}">${year}-${month}-${day} ${hour}:${min} (UTC)</option>`;
+            });
+            historySelector.innerHTML = optionsHTML;
+            historySelector.value = currentValue || 'latest';
+        }
+    } catch (error) {
+        console.error('Error fetching history:', error);
+    }
 }
 
 async function fetchLatestData() {
@@ -75,13 +132,9 @@ async function fetchLatestData() {
             currentData = data;
             
             // Format timestamp for display (YYYYMMDD_HHMM to readable)
-            const raw = data.timestamp; // e.g., 20260711_1600
-            const year = raw.substring(0,4);
-            const month = raw.substring(4,6);
-            const day = raw.substring(6,8);
-            const hour = raw.substring(9,11);
-            const min = raw.substring(11,13);
-            timestampDisplay.textContent = `${year}-${month}-${day} ${hour}:${min} (UTC)`;
+            if (historyMode === 'latest') {
+                updateTimestampDisplay(data.timestamp);
+            }
             
             updateDisplay();
             
@@ -97,9 +150,11 @@ async function fetchLatestData() {
 }
 
 function updateDisplay() {
-    if (!currentData) return;
-
-    const imgUrl = currentData[currentMode]?.[currentRegion];
+    const imgUrl = historyMode === 'latest' ? 
+                   currentData?.[currentMode]?.[currentRegion] : 
+                   `/static/images/${historyMode}/himawari_${currentMode}_${currentRegion}.webp`;
+                   
+    if (historyMode === 'latest' && !currentData) return;
     const loaderContainer = document.getElementById('loader-container');
     const loadingText = document.getElementById('loading-text');
 

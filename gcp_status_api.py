@@ -42,6 +42,14 @@ def get_latest():
             return data
     return {"status": "processing", "message": "等待首次排程產圖中..."}
 
+@app.get("/api/history")
+def get_history():
+    history_list = []
+    if os.path.exists(STATIC_DIR):
+        folders = [f for f in os.listdir(STATIC_DIR) if os.path.isdir(os.path.join(STATIC_DIR, f)) and len(f) == 13 and '_' in f]
+        history_list = sorted(folders, reverse=True)
+    return {"history": history_list}
+
 @app.get("/api/logs")
 @app.get("/logs")
 def get_logs():
