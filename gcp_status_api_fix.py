@@ -58,33 +58,48 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-from pydantic import BaseModel
+
+import google.generativeai as genai
 import subprocess
+from pydantic import BaseModel
+
+# Initialize Gemini
+genai.configure(api_key="AIzaSyDyKOHTza6492Gr3MwYl5apg0EZKhh8DJQ")
+
+def run_shell_command(command: str) -> str:
+    """Executes a shell command on the Linux server and returns the output. Use this to inspect the system, manage processes, or manipulate files."""
+    try:
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+        out = result.stdout
+        if result.stderr:
+            out += f"\n[stderr]: {result.stderr}"
+        return out if out else "(Command executed successfully with no output)"
+    except Exception as e:
+        return f"Error executing command: {str(e)}"
+
+sys_instruct = "You are a highly capable AI Server Administrator. You have full root access to this GCP Linux server. When the user asks you to do something, use the run_shell_command tool to execute commands, gather info, and make changes. Once you have the info, explain the result clearly and concisely to the user in Traditional Chinese."
+model = genai.GenerativeModel('gemini-1.5-pro', tools=[run_shell_command], system_instruction=sys_instruct)
+chat_session = None
 
 class AgentRequest(BaseModel):
-    command: str
+    message: str
     username: str
     password: str
 
-@app.post('/api/agent')
+@app.post("/api/agent")
 def run_agent_command(req: AgentRequest):
-    if req.username != 'kai1010210@gmail.com' or req.password != 'a12221316':
-        return {'status': 'error', 'output': 'Unauthorized'}
+    global chat_session
+    if req.username != "kai1010210@gmail.com" or req.password != "a12221316":
+        return {"status": "error", "output": "Unauthorized"}
+    
+    if chat_session is None:
+        chat_session = model.start_chat(enable_automatic_function_calling=True)
 
     try:
-        result = subprocess.run(
-            req.command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        output = result.stdout
-        if result.stderr:
-            output += '\n[Error Output]:\n' + result.stderr
-        return {'status': 'success', 'output': output}
+        response = chat_session.send_message(req.message)
+        return {"status": "success", "output": response.text}
     except Exception as e:
-        return {'status': 'error', 'output': str(e)}
+        return {"status": "error", "output": f"AI Error: {str(e)}"}
 
 @app.get("/api/latest")
 def get_latest():

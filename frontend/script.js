@@ -363,10 +363,10 @@ function appendMessage(text, sender) {
 }
 
 async function sendAgentCommand() {
-    const command = chatInput.value.trim();
-    if (!command) return;
+    const message = chatInput.value.trim();
+    if (!message) return;
 
-    appendMessage(command, 'user');
+    appendMessage(message, 'user');
     chatInput.value = '';
     chatInput.disabled = true;
     chatSendBtn.disabled = true;
@@ -378,7 +378,7 @@ async function sendAgentCommand() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                command: command,
+                message: message,
                 username: 'kai1010210@gmail.com',
                 password: 'a12221316'
             })

@@ -147,19 +147,19 @@
         </div> <!-- End of map-view -->
         
         <!-- Chat Agent UI -->
-        <button id="chat-toggle-btn" class="chat-toggle-btn">💬 Server Agent</button>
+        <button id="chat-toggle-btn" class="chat-toggle-btn">💬 AI Agent</button>
         <div id="chat-modal" class="chat-modal glass-panel hidden">
             <div class="chat-header">
-                <h3>Terminal Agent</h3>
+                <h3>Gemini Server Admin</h3>
                 <button id="chat-close-btn" class="chat-close-btn">✖</button>
             </div>
             <div class="chat-history" id="chat-history">
                 <div class="chat-message system-msg">
-                    Welcome to the Server Agent. This terminal allows you to execute commands directly on the GCP server. Enter a command to begin.
+                    歡迎使用 Gemini AI 助理。您可以直接使用自然語言對我下達維護指令（例如：「幫我檢查伺服器記憶體狀況」或是「幫我重啟 map_generator」）。
                 </div>
             </div>
             <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Enter shell command (e.g. ls -la)..." autocomplete="off">
+                <input type="text" id="chat-input" placeholder="請問您需要什麼協助？..." autocomplete="off">
                 <button id="chat-send-btn">Send</button>
             </div>
         </div>
