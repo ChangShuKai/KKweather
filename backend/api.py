@@ -31,7 +31,7 @@ def proxy_static(filepath: str):
 
 # 2. Proxy API endpoints
 @app.get("/api/{endpoint:path}")
-def proxy_api(endpoint: str):
+def proxy_api_get(endpoint: str):
     url = f"{GCP_URL}/api/{endpoint}"
     try:
         resp = requests.get(url, timeout=5)
@@ -41,14 +41,24 @@ def proxy_api(endpoint: str):
     except Exception as e:
         return JSONResponse(status_code=502, content={"status": "processing", "message": "等待連線至伺服器..."})
 
+@app.post("/api/{endpoint:path}")
+async def proxy_api_post(endpoint: str, request: Request):
+    url = f"{GCP_URL}/api/{endpoint}"
+    try:
+        data = await request.json()
+        resp = requests.post(url, json=data, timeout=35)
+        return JSONResponse(status_code=resp.status_code, content=resp.json())
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"status": "error", "message": f"Proxy Error: {str(e)}"})
+
 # 3. Proxy /logs and /status
 @app.get("/logs")
 def proxy_logs():
-    return proxy_api("logs")
+    return proxy_api_get("logs")
 
 @app.get("/status")
 def proxy_status():
-    return proxy_api("status")
+    return proxy_api_get("status")
 
 # 4. Serve Frontend
 @app.get("/")

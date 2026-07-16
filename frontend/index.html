@@ -144,6 +144,24 @@
                 <p class="map-subtext">快取更新：即時動態快取 (Live Cache)</p>
                 <p class="map-subtext">當前 Zoom 等級：<span id="map-zoom-level">6</span></p>
             </div>
+        </div> <!-- End of map-view -->
+        
+        <!-- Chat Agent UI -->
+        <button id="chat-toggle-btn" class="chat-toggle-btn">💬 Server Agent</button>
+        <div id="chat-modal" class="chat-modal glass-panel hidden">
+            <div class="chat-header">
+                <h3>Terminal Agent</h3>
+                <button id="chat-close-btn" class="chat-close-btn">✖</button>
+            </div>
+            <div class="chat-history" id="chat-history">
+                <div class="chat-message system-msg">
+                    Welcome to the Server Agent. This terminal allows you to execute commands directly on the GCP server. Enter a command to begin.
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Enter shell command (e.g. ls -la)..." autocomplete="off">
+                <button id="chat-send-btn">Send</button>
+            </div>
         </div>
         
         </div> <!-- End of content-wrapper -->

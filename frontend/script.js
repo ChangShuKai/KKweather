@@ -332,3 +332,79 @@ function updateCountdown() {
 // Start countdown
 calculateNextRunTime();
 setInterval(updateCountdown, 1000);
+
+// --- Chat Agent Logic ---
+const chatToggleBtn = document.getElementById('chat-toggle-btn');
+const chatModal = document.getElementById('chat-modal');
+const chatCloseBtn = document.getElementById('chat-close-btn');
+const chatSendBtn = document.getElementById('chat-send-btn');
+const chatInput = document.getElementById('chat-input');
+const chatHistory = document.getElementById('chat-history');
+
+if (chatToggleBtn && chatModal && chatCloseBtn) {
+    chatToggleBtn.addEventListener('click', () => {
+        chatModal.classList.toggle('hidden');
+        if (!chatModal.classList.contains('hidden')) {
+            chatInput.focus();
+        }
+    });
+
+    chatCloseBtn.addEventListener('click', () => {
+        chatModal.classList.add('hidden');
+    });
+}
+
+function appendMessage(text, sender) {
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('chat-message', sender + '-msg');
+    msgDiv.textContent = text;
+    chatHistory.appendChild(msgDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+async function sendAgentCommand() {
+    const command = chatInput.value.trim();
+    if (!command) return;
+
+    appendMessage(command, 'user');
+    chatInput.value = '';
+    chatInput.disabled = true;
+    chatSendBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/agent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                command: command,
+                username: 'kai1010210@gmail.com',
+                password: 'a12221316'
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            appendMessage(data.output || '(No output)', 'agent');
+        } else {
+            appendMessage(`Error: ${data.output || data.message || 'Unknown error'}`, 'agent');
+        }
+    } catch (err) {
+        appendMessage(`Request failed: ${err.message}`, 'agent');
+    } finally {
+        chatInput.disabled = false;
+        chatSendBtn.disabled = false;
+        chatInput.focus();
+    }
+}
+
+if (chatSendBtn && chatInput) {
+    chatSendBtn.addEventListener('click', sendAgentCommand);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendAgentCommand();
+        }
+    });
+}
